@@ -33,37 +33,33 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         boolean pathStart = false;
-        log.info(request.getRemoteAddr());
 
         try {
             String path = request.getServletPath();
+            log.info(request.getRemoteAddr() + " : " + request.getServletPath());
             for (String p : PERMIT_ALL) {
                 if (path.startsWith(p)) {
                     pathStart = path.startsWith(p);
-                    log.info(path + "/" + pathStart);
                     break;
                 }
             }
             if (pathStart) {
-                log.info("doFilterInternal");
                 filterChain.doFilter(request, response);
             } else {
                 String jwt = resolveToken(request);
                 if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                    log.info("토큰 정상 filter");
                     Authentication authentication = tokenProvider.getAuthentication(jwt);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
                     filterChain.doFilter(request, response);
                 } else {
                     SecurityContextHolder.clearContext();
-                    log.info("check");
-                    jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.INVALID_JWT_TOKEN));
+                    jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.INVALID_JWT_TOKEN)); // 403
                 }
             }
         } catch (ExpiredJwtException e) {
             SecurityContextHolder.clearContext();
-            jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.EXPIRED_JWT_TOKEN));
+            jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.EXPIRED_JWT_TOKEN)); // 401
         }
     }
 
