@@ -1,0 +1,50 @@
+server:
+  port: 9725
+
+  error:
+    include-stacktrace: never
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://db-g6ql6.pub-cdb.ntruss.com:3306/yakdabang?serverTimezone=UTC&characterEncoding=UTF-8
+    username: yakman
+    password: fkdls1124!
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+  logging:
+    level:
+      com.tutorial: debug
+
+  mvc:
+    view:
+      prefix: /resources/templates
+      suffix: .html
+
+jwt:
+  secret: c2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQtc2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQK
+
+springdoc:
+  host:
+  version: v1.0.0
+  packages-to-scan: com.jxjtech.yakmanager
+  swagger-ui:
+    path: swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+    groups:
+      enabled: true
+  cache:
+    disabled: true
+  default-consumes-media-type: application/json;charset=UTF-8
+  default-produces-media-type: application/json;charset=UTF-8

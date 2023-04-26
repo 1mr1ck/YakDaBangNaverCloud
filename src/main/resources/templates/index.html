@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        table {
+            margin-top : 5px;
+        }
+        table, tr, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+    </style>
+    <title>Title</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+</head>
+<body onload="imgSample()">
+<div class="title">
+    <dd><input class="imgInput" type="file" id="input_img" accept="image/*"></dd>
+    <dd><input value="이미지등록" class="imgUpBtn" type="button" id="UploadBtn" onclick="imgUpload()"></dd>
+</div>
+<h2>이미지가 5개 이상일 때 새로등록하면 맨위에 이미지는 자동삭제 됩니다.</h2>
+<div class="img-sample">
+</div>
+</body>
+<script>
+    const img_box = document.querySelector('.img-sample');
+
+    function imgUpload() {
+        let file = document.getElementById('input_img');
+        let form = new FormData();
+        form.append("image", file.files[0])
+
+        let imageSettings = {
+            "url": "https://api.imgbb.com/1/upload?key=a15dd3c2b32fd53a91020b43c59f6d90",
+            "method": "POST",
+            "timeout": 0,
+            "processData": false,
+            "mimeType": "multipart/form-data",
+            "contentType": false,
+            "data": form
+        };
+
+        $.ajax(imageSettings).done(function (response) {
+            console.log(response);
+            let jx = JSON.parse(response);
+            let img_url = jx.data.url;
+
+            // output += '<td><img src="' + img_url + '" style="width: 100px; height: 100px;"></td>';
+            // output += '</tr>';
+            //
+            // img_box.innerHTML += output;
+            let createImg = {
+                "url": "/img/createImg",
+                "method": "POST",
+                "timeout": 0,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "data": JSON.stringify({
+                    "img_url": img_url
+                }),
+            };
+
+            $.ajax(createImg).done(function (response) {
+                console.log(response)
+                location.href = "/index";
+            });
+        })
+    }
+
+    function imgSample() {
+        let imgSample = {
+            "url": "/img/getList",
+            "method": "POST",
+            "timeout": 0,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "data": JSON.stringify({
+                "img_url_id": this.img_url_id,
+                "img_url": this.img_url
+            }),
+        }
+
+        $.ajax(imgSample).done(function (response) {
+            let output = '<table>';
+            const result = response;
+            result.forEach(e => {
+                const img_url = e.img_url;
+                const img_url_id = e.img_url_id;
+                output += '<tr>'
+                output += '<td><img src="' + img_url + '" style="width: 200px; height: 200px;"></td>';
+                output += '<td class="deleteImg"><input value="삭제" class="deleteBtn" type="button"' +
+                    'onclick="deleteImgBox(' + img_url_id + ')"></td>';
+
+            })
+            output += '</tr></table>';
+            img_box.innerHTML = output;
+        })
+    }
+
+    function deleteImgBox(img_url_id) {
+        let settings = {
+            "url": "/img/deleteImgBox/" + img_url_id,
+            "method": "DELETE",
+            "timeout": 0,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "data": JSON.stringify({
+                "img_url_id": img_url_id
+            }),
+        };
+
+        $.ajax(settings).done(function (response) {
+            console.log(response);
+            location.href="/index";
+        });
+    }
+</script>
+</html>
