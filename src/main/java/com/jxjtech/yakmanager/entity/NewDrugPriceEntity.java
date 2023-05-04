@@ -4,17 +4,15 @@ import com.jxjtech.yakmanager.dto.DrugPriceDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 import javax.persistence.*;
 
 @Entity
-@Table(name = "drugprice")
+@Table(name = "newdrugprice")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
-public class DrugPriceEntity {
+public class NewDrugPriceEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "drugPriceId")
@@ -32,7 +30,7 @@ public class DrugPriceEntity {
     @Column(name = "drugUnit")
     private String drugUnit;
 
-    public static DrugPriceEntity changeName(DrugPriceEntity entity) {
+    public static NewDrugPriceEntity changeName(NewDrugPriceEntity entity) {
         String drugName = entity.getDrugName();
         if(drugName.contains("_")) {
             String[] s = drugName.split("_");
@@ -49,7 +47,7 @@ public class DrugPriceEntity {
         return entity;
     }
 
-    public DrugPriceEntity(DrugPriceDTO dto) {
+    public NewDrugPriceEntity(DrugPriceDTO dto) {
         this.drugName = dto.getDrugName();
         this.drugCode = dto.getDrugCode();
     }

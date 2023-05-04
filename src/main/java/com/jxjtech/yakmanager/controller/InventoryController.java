@@ -1,10 +1,8 @@
 package com.jxjtech.yakmanager.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.jxjtech.yakmanager.dto.DrugPackageInfoRequestDTO;
-import com.jxjtech.yakmanager.dto.DrugRecordRequestDTO;
-import com.jxjtech.yakmanager.dto.PharmacyRequestDTO;
-import com.jxjtech.yakmanager.dto.TitleRequestDTO;
+import com.jxjtech.yakmanager.dto.*;
+import com.jxjtech.yakmanager.service.FileService;
 import com.jxjtech.yakmanager.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,6 +49,12 @@ public class InventoryController {
     @Operation(summary = "의약품 포장정보 조회")
     public ResponseEntity<?> getDrugPackageInfo(@RequestBody DrugPackageInfoRequestDTO drugPackageInfoRequestDTO) {
         return ResponseEntity.ok(inventoryService.getPackageInfo(drugPackageInfoRequestDTO));
+    }
+
+    @PostMapping("/drugs/narcoticDrugRecord")
+    @Operation(summary = "마약류 의약품 엑셀 저장된 기록 조회")
+    public ResponseEntity<?> getNarcoticDrugRecord() {
+        return ResponseEntity.ok(inventoryService.getNarcoticDrugRecord());
     }
 
     @GetMapping("/drugs/search/{keyword}")

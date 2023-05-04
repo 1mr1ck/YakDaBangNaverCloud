@@ -2,119 +2,155 @@ package com.jxjtech.yakmanager.dto;
 
 import com.jxjtech.yakmanager.entity.DrugPackageEntity;
 import com.jxjtech.yakmanager.entity.DrugPriceEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Slf4j
 public class DrugPackageInfoResponseDTO {
 
     private Integer drugCode;
     private Integer productCode;
     private String drugName;
     private List<String> packageInfo;
-    private String price;
+    private String drugPrice;
 
-
-    // 보험코드가 있고, 정이나 캡슐일 때
-    public static DrugPackageInfoResponseDTO toResponseDTO(List<DrugPackageEntity> packageEntity, DrugPriceEntity priceEntity) {
-        DrugPackageInfoResponseDTO result = new DrugPackageInfoResponseDTO();
-        result.setDrugCode(priceEntity.getDrugCode());
-        result.setProductCode(priceEntity.getProductCode());
-        result.setDrugName(priceEntity.getDrugName());
-        result.setPrice(priceEntity.getDrugPrice());
-        List<String> packageInfo = new ArrayList<>();
-
-        if(packageEntity.size() > 0) {
-            for(DrugPackageEntity entity : packageEntity) {
-                String s = "";
-                if(entity.getDrugQuantity() == 0) {
-                    s = priceEntity.getDrugQuantity() + "/" + priceEntity.getDrugUnit();
-                } else {
-                    s = entity.getDrugQuantity() + entity.getDrugQuantity() + "/" + entity.getDrugUnitPack();
-                }
-                packageInfo.add(s);
-            }
-        } else {
-            String s = 1 + priceEntity.getDrugQuantity() + "/" + priceEntity.getDrugUnit();
-            packageInfo.add(s);
-        }
-
-        result.setPackageInfo(packageInfo);
-
-        return result;
-    }
-
-    // 보험코드가 있고, 정이나 캡슐이 아닐 때
-    public static DrugPackageInfoResponseDTO toResponseDTO2(DrugPriceEntity priceEntity) {
+    // drugCode, productCode is not null & (drugUnit 캡슐 || 정)
+    public static DrugPackageInfoResponseDTO ofDrugCodeAndProductCodeNotNull(List<DrugPackageEntity> drugPackageEntities, DrugPriceEntity drugPriceEntity) {
         String s = "";
-        DrugPackageInfoResponseDTO result = new DrugPackageInfoResponseDTO();
-        result.setDrugCode(priceEntity.getDrugCode());
-        result.setProductCode(priceEntity.getProductCode());
-        result.setDrugName(priceEntity.getDrugName());
-        result.setPrice(priceEntity.getDrugPrice());
-        List<String> packageInfo = new ArrayList<>();
-
-        if (priceEntity.getDrugQuantity().contains("(")) {
-            String standard = priceEntity.getDrugQuantity().split("\\(")[0];
-            s += standard + priceEntity.getDrugUnit();
-            String price = "";
-            if(!standard.contains(".")) {
-                price = String.valueOf(Integer.parseInt(priceEntity.getDrugPrice()) * Integer.parseInt(standard));
-            } else {
-                price = String.valueOf(Integer.parseInt(priceEntity.getDrugPrice()) * Double.parseDouble(standard));
+        List<String> packageInfos = new ArrayList<>();
+        if(drugPackageEntities.size() > 1) {
+            for(DrugPackageEntity entity : drugPackageEntities) {
+                int drugQuantity = entity.getDrugQuantity();
+                if(drugQuantity == 0) {
+                    log.info("양 0");
+                    s = 1 + "낱알/낱알";
+                    packageInfos.add(s);
+                } else {
+                    log.info("양 0 초과");
+                    s = drugQuantity + entity.getDrugForm() + "/" + entity.getDrugUnitPack();
+                    packageInfos.add(s);
+                }
             }
-            result.setPrice(price);
-            packageInfo.add(s);
         } else {
-            s += priceEntity.getDrugQuantity() + priceEntity.getDrugUnit();
-            packageInfo.add(s);
+            log.info("check size 1");
+            s = 1 + "낱알/낱알";
+            packageInfos.add(s);
         }
-        result.setPackageInfo(packageInfo);
+        Collections.reverse(packageInfos);
 
-        return result;
+        return DrugPackageInfoResponseDTO.builder()
+                .drugCode(drugPriceEntity.getDrugCode())
+                .productCode(drugPriceEntity.getProductCode())
+                .drugName(drugPriceEntity.getDrugName())
+                .packageInfo(packageInfos)
+                .drugPrice(drugPriceEntity.getDrugPrice())
+                .build();
     }
 
-    // 보험코드가 없을 때,
-    public static DrugPackageInfoResponseDTO toResponseDTO3(List<DrugPackageEntity> packageEntity, DrugPriceEntity priceEntity) {
-        DrugPackageInfoResponseDTO result = new DrugPackageInfoResponseDTO();
-        List<String> packageInfo = new ArrayList<>();
-        if (packageEntity.size() > 0) {
-            for (DrugPackageEntity entity : packageEntity) {
-                String s = "";
-                String drugName = entity.getDrugName();
-                result.setDrugCode(entity.getDrugCode());
-                result.setProductCode(priceEntity.getProductCode());
-                result.setDrugName(priceEntity.getDrugName());
-                result.setPrice(priceEntity.getDrugPrice());
-                if (entity.getDrugQuantity() == 0) {
-                    if (!drugName.contains("캡슐") && !drugName.contains("정")) {
-                        s = 1 + "개";
-                    } else if (drugName.contains("캡슐")) {
-                        s = 1 + "낱알/낱알" + "(" + entity.getDrugStandard() + ")";
-                    } else if (drugName.contains("정") && drugName.matches(".*\\d.*")) {
-                        drugName = drugName.split("\\d+")[0];
-                        if (drugName.charAt(drugName.length() - 1) == '정') {
-                            s = 1 + "낱알/낱알"  + "(" + entity.getDrugStandard() + ")";
-                        }
-                    } else {
-                        s = 1 + "개";
-                    }
-                } else {
-                    s = entity.getDrugQuantity() + "/" + entity.getDrugUnitPack()   + "(" + entity.getDrugStandard() + ")";
-                }
-                packageInfo.add(s);
-            }
-            result.setPackageInfo(packageInfo);
-        } else {
-            result.setDrugCode(priceEntity.getDrugCode());
-            result.setProductCode(priceEntity.getProductCode());
-            result.setDrugName(priceEntity.getDrugName());
-            result.setPrice(priceEntity.getDrugPrice());
-            packageInfo.add(1 + "개");
-            result.setPackageInfo(packageInfo);
+    // Not Capsule, Not Pill
+    public static DrugPackageInfoResponseDTO ofNotCapsuleAndNotPill(DrugPriceEntity drugPriceEntity) {
+        List<String> packageInfos = new ArrayList<>();
+        String s = "";
+        // 가격 수정이 필요하다.
+        String drugQuantity = drugPriceEntity.getDrugQuantity();
+        String price = drugPriceEntity.getDrugPrice();
+        if(drugQuantity.contains("(")) {
+            drugQuantity = drugQuantity.split("\\(")[0];
+            price = String.valueOf(Integer.parseInt(drugQuantity) * Integer.parseInt(drugPriceEntity.getDrugPrice()));
         }
-        return result;
+
+        s = "1개";
+
+        packageInfos.add(s);
+        Collections.reverse(packageInfos);
+
+        return DrugPackageInfoResponseDTO.builder()
+                .drugCode(drugPriceEntity.getDrugCode())
+                .productCode(drugPriceEntity.getProductCode())
+                .drugName(drugPriceEntity.getDrugName())
+                .packageInfo(packageInfos)
+                .drugPrice(price)
+                .build();
+    }
+
+    // drugCode is null, productCode is not null
+    public static DrugPackageInfoResponseDTO ofOnlyProductCode(DrugPriceEntity drugPriceEntity) {
+        List<String> packageInfos = new ArrayList<>();
+        String s = "";
+        // 가격 수정이 필요하다.
+        String drugQuantity = drugPriceEntity.getDrugQuantity();
+        String price = drugPriceEntity.getDrugPrice();
+        if(drugQuantity.contains("(")) {
+            drugQuantity = drugQuantity.split("\\(")[0];
+            price = String.valueOf(Integer.parseInt(drugQuantity) * Integer.parseInt(drugPriceEntity.getDrugPrice()));
+        }
+
+        if(drugPriceEntity.getDrugUnit().equals("캡슐") || drugPriceEntity.getDrugUnit().equals("정")) {
+            s = "1낱알/낱알";
+        } else {
+            s = "1개";
+        }
+        packageInfos.add(s);
+        Collections.reverse(packageInfos);
+
+        return DrugPackageInfoResponseDTO.builder()
+                .drugCode(drugPriceEntity.getDrugCode())
+                .productCode(drugPriceEntity.getProductCode())
+                .drugName(drugPriceEntity.getDrugName())
+                .packageInfo(packageInfos)
+                .drugPrice(price)
+                .build();
+    }
+
+    // drugCode is not null, productCode is null
+    public static DrugPackageInfoResponseDTO ofOnlyDrugCode(List<DrugPackageEntity> drugPackageEntities, DrugPriceEntity drugPriceEntity) {
+        String s = "";
+        List<String> packageInfos = new ArrayList<>();
+        if(drugPackageEntities.size() > 1) {
+            for(DrugPackageEntity entity : drugPackageEntities) {
+                int drugQuantity = entity.getDrugQuantity();
+                if(drugQuantity == 0) {
+                    log.info("양 0");
+                    s = 1 + "개";
+                    packageInfos.add(s);
+                } else {
+                    log.info("양 0 초과");
+                    if(drugPriceEntity.getDrugUnit().equals("캡슐") || drugPriceEntity.getDrugUnit().equals("정")) {
+                        s = drugQuantity + entity.getDrugForm() + "/" + entity.getDrugUnitPack();
+                    } else {
+                        s = "1개";
+                    }
+                    packageInfos.add(s);
+                }
+            }
+        } else {
+            log.info("check size 1");
+            s = 1 + "개";
+            packageInfos.add(s);
+        }
+
+        Collections.reverse(packageInfos);
+
+        return DrugPackageInfoResponseDTO.builder()
+                .drugCode(drugPriceEntity.getDrugCode())
+                .productCode(drugPriceEntity.getProductCode())
+                .drugName(drugPriceEntity.getDrugName())
+                .packageInfo(packageInfos)
+                .drugPrice(drugPriceEntity.getDrugPrice())
+                .build();
+        
+        
     }
 }

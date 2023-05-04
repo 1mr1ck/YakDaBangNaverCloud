@@ -27,13 +27,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private static final String[] PERMIT_ALL = {
             "/api/auth/check", "/api/auth/login", "/api/auth/register/", "/swagger-ui", "/v3", "/index", "/img", "/favicon", "/api/board/notice",
-            "/api/auth/token", "/policy"
+            "/api/auth/token", "/policy", "/api/DBUpdate", "/csvUpload", "/upload", "/api/inventory/drugs/package", "/api/inventory/drugs/narcoticDrugRecord"
     };
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         boolean pathStart = false;
-        log.info("test");
         try {
             String path = request.getServletPath();
             log.info(request.getRemoteAddr() + " : " + request.getServletPath());

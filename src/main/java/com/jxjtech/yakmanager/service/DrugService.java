@@ -28,6 +28,7 @@ public class DrugService {
     private final Drug_info2Repository drug_info2Repository;
     private final DrugNameRepository drugNameRepository;
     private final DrugPriceRepository drugPriceRepository;
+    private final DrugImgRepository drugImgRepository;
 
 
     public Drug_infoAllDTO drugInfoByDrugCode(int drugCode) {
@@ -150,57 +151,6 @@ public class DrugService {
     }
 
     @Transactional
-    public boolean dbUpdate3() {
-        List<DrugPriceEntity> drugPriceEntities = drugPriceRepository.findAll();
-        List<Drug_info1Entity> drug_info1Entities = drug_info1Repository.findAll();
-
-        for(DrugPriceEntity entity : drugPriceEntities) {
-            for(int i=0; i<drug_info1Entities.size(); i++) {
-                if(drug_info1Entities.get(i).getProduct_barcode().equals("")) {
-                    continue;
-                }
-                if(drug_info1Entities.get(i).getProduct_barcode().contains(",")) {
-                    String[] barcode = drug_info1Entities.get(i).getProduct_barcode().split(",");
-                    for(String code : barcode) {
-                        if(entity.getProductCode().equals(Integer.parseInt(code))) {
-                            entity.setDrugCode(drug_info1Entities.get(i).getDrug_code());
-                        }
-                    }
-                } else {
-                    if(entity.getProductCode().equals(Integer.parseInt(drug_info1Entities.get(i).getProduct_barcode()))) {
-                        entity.setDrugCode(drug_info1Entities.get(i).getDrug_code());
-                    }
-                }
-            }
-        }
-
-
-        return true;
-    }
-
-    @Transactional
-    public boolean dbUpdate4() {
-        List<DrugPriceEntity> drugPriceEntities = drugPriceRepository.findAll();
-
-        drugPriceEntities.stream().map(DrugPriceEntity::changeName).collect(Collectors.toList());
-
-        return true;
-    }
-
-    public void dbUpdate5() {
-        List<Drug_info1Entity> drug_info1Entities = drug_info1Repository.findOuterJoinAll();
-        List<DrugPriceEntity> addResult = new ArrayList<>();
-
-        for(Drug_info1Entity info1 : drug_info1Entities) {
-            DrugPriceDTO dto = new DrugPriceDTO(info1);
-            DrugPriceEntity add = new DrugPriceEntity(dto);
-            addResult.add(add);
-        }
-        System.out.println(addResult.size());
-        drugPriceRepository.saveAll(addResult);
-    }
-
-    @Transactional
     public void dbUpdate6() {
         List<DrugPackageEntity> drugPackageEntities = drugPackageRepository.findAll();
 
@@ -211,5 +161,25 @@ public class DrugService {
         List<Drug_info1Entity> drug_info1Entities = drug_info1Repository.findAll();
 
         drug_info1Entities.stream().map(Drug_info1Entity::deleteBar).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void dbUpdate7() {
+        List<Drug_info1Entity> drug_info1Entities = drug_info1Repository.findAll();
+
+        List<DrugImgEntity> drugImgEntities = drugImgRepository.findAll();
+
+        int count = 0;
+        for(Drug_info1Entity entity : drug_info1Entities) {
+            for(DrugImgEntity entity1 : drugImgEntities) {
+                int info1_dc = entity.getDrug_code();
+
+                if(info1_dc == entity1.getDrugCode()) {
+                    entity.setDrugImg(entity1.getDrugImg());
+                }
+            }
+        }
+        drug_info1Repository.saveAll(drug_info1Entities);
+        log.info("count : " + count);
     }
 }

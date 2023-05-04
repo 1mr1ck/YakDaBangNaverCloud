@@ -23,11 +23,13 @@ import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class InventoryService {
+    private final NarcoticDrugRecordRepository narcoticDrugRecordRepository;
     private final MemberRepository memberRepository;
 
     private final PharmacyRepository pharmacyRepository;
@@ -204,24 +206,40 @@ public class InventoryService {
      * 의약품 포장정보
      */
     public DrugPackageInfoResponseDTO getPackageInfo(DrugPackageInfoRequestDTO drugPackageInfoRequestDTO) {
-        DrugPackageInfoResponseDTO result;
+        DrugPackageInfoResponseDTO result = new DrugPackageInfoResponseDTO();
         Integer drugCode = drugPackageInfoRequestDTO.getDrugCode();
         Integer productCode = drugPackageInfoRequestDTO.getProductCode();
 
-        if (productCode != null) {
-            DrugPriceEntity priceEntity = drugPriceRepository.findByProductCode(productCode)
+        DrugPriceEntity drugPriceEntity = new DrugPriceEntity();
+        if(productCode != null) {
+            drugPriceEntity = drugPriceRepository.findByProductCode(productCode)
                     .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
-            if (priceEntity.getDrugUnit().equals("정") || priceEntity.getDrugUnit().equals("캡슐")) {
-                List<DrugPackageEntity> packageEntity = drugPackageRepository.findAllByDrugCode(drugCode);
-                result = DrugPackageInfoResponseDTO.toResponseDTO(packageEntity, priceEntity);
-            } else {
-                result = DrugPackageInfoResponseDTO.toResponseDTO2(priceEntity);
-            }
         } else {
-            List<DrugPackageEntity> packageEntity = drugPackageRepository.findAllByDrugCode(drugCode);
-            DrugPriceEntity entity = drugPriceRepository.findByDrugCode(drugCode);
-            result = DrugPackageInfoResponseDTO.toResponseDTO3(packageEntity, entity);
+            drugPriceEntity = drugPriceRepository.findByDrugCode(drugCode)
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
         }
+
+        String drugUnit = drugPriceEntity.getDrugUnit();
+        // 1. drugCode is not null, productCode is not null
+        if(drugCode != null && productCode != null) {
+            List<DrugPackageEntity> drugPackageEntities = drugPackageRepository.findAllByDrugCode(drugCode);
+            // 1-1. drugUnit equals 캡슐 || 정
+            if(drugUnit.equals("캡슐") || drugUnit.equals("정")) {
+                log.info("둘다 not null이고 캡슐 or 정");
+                result = DrugPackageInfoResponseDTO.ofDrugCodeAndProductCodeNotNull(drugPackageEntities, drugPriceEntity);
+            } else {
+                // 1-2. 캡슐이나 정이 아닐경우
+                result = DrugPackageInfoResponseDTO.ofNotCapsuleAndNotPill(drugPriceEntity);
+            }
+        } else if(productCode != null) {
+            // 2. drugCode is null, productCode is not null
+            result = DrugPackageInfoResponseDTO.ofOnlyProductCode(drugPriceEntity);
+        } else if(drugCode != null) {
+            // 3. drugCode is not null, productCode is null
+            List<DrugPackageEntity> drugPackageEntities = drugPackageRepository.findAllByDrugCode(drugCode);
+            result = DrugPackageInfoResponseDTO.ofOnlyDrugCode(drugPackageEntities, drugPriceEntity);
+        }
+
 
         return result;
     }
@@ -640,5 +658,16 @@ public class InventoryService {
             return true;
         }
         return false;
+    }
+
+    public List<NarcoticDrugRecordDTO> getNarcoticDrugRecord() {
+        List<NarcoticDrugRecordDTO> result = new ArrayList<>();
+
+        List<NarcoticDrugRecordEntity> drugRecordEntities = narcoticDrugRecordRepository.findAll();
+
+        result = drugRecordEntities.stream().map(NarcoticDrugRecordEntity::of).collect(Collectors.toList());
+
+
+        return result;
     }
 }

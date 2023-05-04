@@ -51,27 +51,15 @@ public class DrugController {
 //        return ResponseEntity.ok(drugService.dbUpdate2());
 //    }
 //
-//    @PostMapping("/DBUpdate3")
-//    @Operation(summary = "의약품가격DB 의약품코드 추가")
-//    public ResponseEntity<?> dbUpdate3() {
-//        return ResponseEntity.ok(drugService.dbUpdate3());
-//    }
-//
-//    @PostMapping("/DBUpdate4")
-//    @Operation(summary = "의약품가격테이블 이름변경")
-//    public ResponseEntity<?> dbUpdate4() {
-//        return ResponseEntity.ok(drugService.dbUpdate4());
-//    }
-//
-//    @PostMapping("/DBUpdate5")
-//    @Operation(summary = "가격테이블 의약품 DB추가")
-//    public void dbUpdate5() {
-//        drugService.dbUpdate5();
-//    }
-//
 //    @PostMapping("/DBUpdate6")
 //    @Operation(summary = "포장정보테이블 이름변경")
 //    public void dbUpdate6() {
 //        drugService.dbUpdate6();
 //    }
+
+    @PostMapping("/DBUpdate7")
+    @Operation(summary = "info1에 img 추가")
+    public void dbUpdate7() {
+        drugService.dbUpdate7();
+    }
 }

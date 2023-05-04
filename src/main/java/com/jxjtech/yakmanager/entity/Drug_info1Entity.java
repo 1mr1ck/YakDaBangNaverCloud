@@ -51,6 +51,8 @@ public class Drug_info1Entity {
     /** 첨가제명, INGR_NAME */
     @Column(name = "additives")
     private String additives;
+    @Column(name = "drugImg")
+    private String drugImg;
 
     public Drug_info1Entity(Drug_info1DTO dto) {
         this.product_name = dto.getProduct_name();

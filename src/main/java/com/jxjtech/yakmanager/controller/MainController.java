@@ -7,8 +7,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class MainController {
 
     @RequestMapping(value = {"/index"})
-    public String index() { return "index.html"; }
+    public String index() { return "index"; }
 
     @RequestMapping(value = "/policy")
-    public String test() { return "policy.html"; }
+    public String test() { return "policy"; }
+
+    @RequestMapping(value = "/csvUpload")
+    public String csvUpload() { return "csvUpload";}
 }
