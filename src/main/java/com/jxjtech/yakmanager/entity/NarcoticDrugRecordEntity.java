@@ -1,18 +1,17 @@
 package com.jxjtech.yakmanager.entity;
 
 import com.jxjtech.yakmanager.dto.NarcoticDrugRecordDTO;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "NarcoticDrugRecord")
+@Table(name = "narcoticdrugrecord")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -22,6 +21,9 @@ public class NarcoticDrugRecordEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "narcoticDrugRecordId")
     private Long narcoticDrugRecordId;
+
+    @Column(name = "narcoticTitleId")
+    private Long narcoticTitleId;
 
     @Column(name = "drugName")
     private String drugName;
@@ -35,10 +37,11 @@ public class NarcoticDrugRecordEntity {
     @Column(name = "productCode")
     private Integer productCode;
 
-    @Column(name = "memberId")
-    private Long memberId;
+    @Column(name = "nowDrugQuantity")
+    private String nowDrugQuantity;
 
     @Column(name = "`check`")
+    // 0 수정안됨 , 1 값 일치 , 2 값 불일치
     private int check;
 
 
@@ -51,6 +54,7 @@ public class NarcoticDrugRecordEntity {
                     .drugQuantity(dto.getDrugQuantity())
                     .drugCode(dto.getDrugCode())
                     .productCode(dto.getProductCode())
+                    .narcoticTitleId(dto.getNarcoticTitleId())
                     .build();
 
             result.add(entity);
@@ -63,12 +67,15 @@ public class NarcoticDrugRecordEntity {
         NarcoticDrugRecordDTO result = new NarcoticDrugRecordDTO();
 
         result.setNarcoticDrugRecordId(entity.getNarcoticDrugRecordId());
+        result.setCheck(entity.getCheck());
         result.setDrugName(entity.getDrugName());
         result.setDrugQuantity(entity.getDrugQuantity());
         result.setDrugCode(entity.getDrugCode());
         result.setProductCode(entity.getProductCode());
-        result.setMemberId(entity.getMemberId());
+        result.setNarcoticTitleId(entity.getNarcoticTitleId());
+        result.setNowDrugQuantity(entity.getNowDrugQuantity());
 
         return result;
     }
+
 }

@@ -20,7 +20,6 @@ public class MemberDTO {
     private String memberNickName;
     private Authority memberRole;
     private String snsType;
-    private String timeZone;
     private Timestamp joinDate;
     private Timestamp lastAccess;
     private int memberAction;
@@ -32,7 +31,6 @@ public class MemberDTO {
         result.setMemberNickName(dto.getMemberNickName());
         result.setSnsType(dto.getSnsType());
         result.setMemberRole(Authority.user);
-        result.setTimeZone(dto.getTimeZone());
 
         return result;
     }

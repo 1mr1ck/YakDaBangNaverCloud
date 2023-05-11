@@ -1,5 +1,6 @@
 package com.jxjtech.yakmanager.exception;
 
+import io.jsonwebtoken.MalformedJwtException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -14,8 +15,8 @@ public enum ErrorCode {
     NOT_EXIST_DATA(HttpStatus.NOT_FOUND, "데이터가 존재하지 않습니다."),
     NOT_BELONG_TO_PHARMACY(HttpStatus.NOT_FOUND, "약국 소속이 아닙니다."),
     NOT_ADMIN(HttpStatus.NOT_FOUND, "약국의 주인이 아닙니다."),
-    NOT_CONTENT(HttpStatus.NOT_FOUND, "내용을 입력해 주세요.")
-    ;
+    NOT_CONTENT(HttpStatus.NOT_FOUND, "내용을 입력해 주세요.");
+
 
     private final HttpStatus httpStatus;
     private final String message;

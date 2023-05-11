@@ -31,6 +31,10 @@ public class DrugPackageEntity {
     private String drugForm;
     @Column(name = "drugUnitPack")
     private String drugUnitPack;
+    @Column(name = "repCode")
+    private Long repCode;
+    @Column(name = "standardCode")
+    private Long standardCode;
 
     public static DrugPackageEntity changeName(DrugPackageEntity entity) {
         String drugName = entity.getDrugName();

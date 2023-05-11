@@ -2,7 +2,6 @@ package com.jxjtech.yakmanager.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jxjtech.yakmanager.dto.*;
-import com.jxjtech.yakmanager.service.FileService;
 import com.jxjtech.yakmanager.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,12 +50,6 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getPackageInfo(drugPackageInfoRequestDTO));
     }
 
-    @PostMapping("/drugs/narcoticDrugRecord")
-    @Operation(summary = "마약류 의약품 엑셀 저장된 기록 조회")
-    public ResponseEntity<?> getNarcoticDrugRecord() {
-        return ResponseEntity.ok(inventoryService.getNarcoticDrugRecord());
-    }
-
     @GetMapping("/drugs/search/{keyword}")
     @Operation(summary = "재고관리 약 검색")
     public ResponseEntity<?> drugSearchByDrugName(@PathVariable(name = "keyword") String drugName) {
@@ -89,8 +82,8 @@ public class InventoryController {
 
     @PostMapping("/pharmacy/{pharmacyId}/excel")
     @Operation(summary = "약국 데이터 엑셀")
-    public ResponseEntity<?> exportPharmacyExcel(@PathVariable Long pharmacyId) throws MessagingException, UnsupportedEncodingException {
-        return ResponseEntity.ok(inventoryService.exportPharmacy(pharmacyId));
+    public ResponseEntity<?> exportPharmacyExcel(@PathVariable Long pharmacyId, @RequestParam String email) throws MessagingException, UnsupportedEncodingException {
+        return ResponseEntity.ok(inventoryService.exportPharmacy(pharmacyId, email));
     }
 
     @GetMapping("/pharmacy/{pharmacyId}/invitationCode")
@@ -173,7 +166,43 @@ public class InventoryController {
 
     @PostMapping("/title/{titleId}/excel")
     @Operation(summary = "타이틀 엑셀")
-    public ResponseEntity<?> exportTitleExcel(@PathVariable Long titleId) throws MessagingException, UnsupportedEncodingException {
-        return ResponseEntity.ok(inventoryService.exportTitle(titleId));
+    public ResponseEntity<?> exportTitleExcel(@PathVariable Long titleId, @RequestParam String email) throws MessagingException, UnsupportedEncodingException {
+        return ResponseEntity.ok(inventoryService.exportTitle(titleId, email));
+    }
+
+    @PostMapping("/narcotic/OTP")
+    @Operation(summary = "마약류 의약품 등록 OTP")
+    public ResponseEntity<?> getNarcoticOTP() {
+        return ResponseEntity.ok(inventoryService.getOTP());
+    }
+
+    @PostMapping("/narcotic/title")
+    @Operation(summary = "마약류 의약품 타이틀 GET")
+    public ResponseEntity<?> getNarcoticTitle() {
+        return ResponseEntity.ok(inventoryService.getNarcoticTitle());
+    }
+
+    @PostMapping("/narcotic/drugRecord/{titleId}")
+    @Operation(summary = "마약류 의약품 기록 GET")
+    public ResponseEntity<?> getNarcoticRecord(@PathVariable Long titleId) {
+        return ResponseEntity.ok(inventoryService.getNarcoticDrugRecord(titleId));
+    }
+
+    @PostMapping("/narcotic/drugRecord/Inspection/{drugRecordId}")
+    @Operation(summary = "마약류 의약품 재고검사")
+    public ResponseEntity<?> drugRecordInspection(@PathVariable Long drugRecordId, @RequestBody NarcoticInspectionDTO dto) {
+        return ResponseEntity.ok(inventoryService.narcoticInspection(drugRecordId, dto));
+    }
+
+    @DeleteMapping("/narcotic/title/delete/{titleId}")
+    @Operation(summary = "마약류 의약품 타이틀 DELETE")
+    public boolean narcoticTitleDelete(@PathVariable Long titleId) {
+        return inventoryService.deleteNarcoticTitle(titleId);
+    }
+
+    @PostMapping("/narcotic/drugRecord/checkChange/{drugRecordId}")
+    @Operation(summary = "마약류 의약품 체크박스 변경")
+    public boolean narcoticDrugRecordCheckChange(@PathVariable Long drugRecordId) {
+        return inventoryService.checkChange(drugRecordId);
     }
 }

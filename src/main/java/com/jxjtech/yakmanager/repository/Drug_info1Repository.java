@@ -14,4 +14,7 @@ public interface Drug_info1Repository extends JpaRepository<Drug_info1Entity, Lo
 
     @Query(value = "SELECT A.* FROM drug_info1 A LEFT OUTER JOIN newdrugprice B ON A.drug_code=B.drugcode WHERE B.drugcode is null", nativeQuery = true)
     List<Drug_info1Entity> findOuterJoinAll();
+
+    @Query(value = "SELECT * FROM drug_info1 WHERE standard_code = ?", nativeQuery = true)
+    Optional<Drug_info1Entity> findByStandardCode(Long standardCode);
 }

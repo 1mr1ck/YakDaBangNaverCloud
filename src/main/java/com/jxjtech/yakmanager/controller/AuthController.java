@@ -20,16 +20,16 @@ public class AuthController {
     private final AuthService authService;
     private final JWTService jwtService;
 
-    @PostMapping("/token/reIssue")
+    @GetMapping("/token/refresh")
     @Operation(summary = "토큰 재발급")
-    public ResponseEntity<?> tokenReIssue(@RequestBody TokenReIssueRequestDTO dto) throws Exception {
-        return ResponseEntity.ok(jwtService.reIssue(dto));
+    public ResponseEntity<?> tokenReIssue(@RequestHeader(name = "refreshToken") String refreshToken) throws Exception {
+        return ResponseEntity.ok(jwtService.reIssue(refreshToken));
     }
 
-    @PostMapping("/token/rememberMe")
+    @PostMapping("/check/token")
     @Operation(summary = "자동 로그인 토큰체크")
-    public ResponseEntity<?> rememberMeTokenCheck(@RequestBody RememberMeRequestDTO dto) throws Exception {
-        return ResponseEntity.ok(jwtService.rememberMe(dto));
+    public ResponseEntity<?> rememberMeTokenCheck(@RequestHeader(name = "refreshToken") String refreshToken) throws Exception {
+        return ResponseEntity.ok(jwtService.rememberMe(refreshToken));
     }
 
     @PostMapping("/register/{snsType}")
@@ -56,15 +56,15 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(snsType, loginRequestDTO));
     }
 
-    @PostMapping("/check/policy")
+    @GetMapping("/check/policy")
     @Operation(summary = "개인정보정책 확인 API")
-    public ResponseEntity<?> policyCheck(@RequestBody JWTRequestDTO dto) throws Exception {
-        return ResponseEntity.ok(authService.policyCheck(dto));
+    public ResponseEntity<?> policyCheck(@RequestHeader(name = "refreshToken") String refreshToken) throws Exception {
+        return ResponseEntity.ok(authService.policyCheck(refreshToken));
     }
 
     @PostMapping("/register/policy")
     @Operation(summary = "개인정보정책 등록 API")
-    public ResponseEntity<?> registerPolicy(@RequestBody PolicyRegisterDTO policyRegisterDTO) {
-        return ResponseEntity.ok(authService.policyRegister(policyRegisterDTO));
+    public ResponseEntity<?> registerPolicy(@RequestHeader(name = "refreshToken") String refreshToken, @RequestBody PolicyRegisterDTO policyRegisterDTO) {
+        return ResponseEntity.ok(authService.policyRegister(policyRegisterDTO, refreshToken));
     }
 }

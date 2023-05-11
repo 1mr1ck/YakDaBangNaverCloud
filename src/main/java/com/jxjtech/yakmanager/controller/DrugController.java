@@ -1,5 +1,6 @@
 package com.jxjtech.yakmanager.controller;
 
+import com.jxjtech.yakmanager.dto.QRCodeURLDTO;
 import com.jxjtech.yakmanager.service.DrugService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,12 @@ public class DrugController {
         return ResponseEntity.ok(drugService.search(drugName));
     }
 
+    @PostMapping("/QRCode")
+    @Operation(summary = "QR인식 -> 의약품 상세정보")
+    public ResponseEntity<?> drugInfoByQRCode(@RequestBody QRCodeURLDTO dto) {
+        return ResponseEntity.ok(drugService.drugInfoByQRCode(dto));
+    }
+
 //    @PostMapping("/DBUpdate")
 //    @Operation(summary = "의약품 성분 DB 수정")
 //    public ResponseEntity<?> dbUpdate() {
@@ -56,10 +63,10 @@ public class DrugController {
 //    public void dbUpdate6() {
 //        drugService.dbUpdate6();
 //    }
-
-    @PostMapping("/DBUpdate7")
-    @Operation(summary = "info1에 img 추가")
-    public void dbUpdate7() {
-        drugService.dbUpdate7();
-    }
+//
+//    @PostMapping("/DBUpdate7")
+//    @Operation(summary = "info1에 img 추가")
+//    public void dbUpdate7() {
+//        drugService.dbUpdate7();
+//    }
 }

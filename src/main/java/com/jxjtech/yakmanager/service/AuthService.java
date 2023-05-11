@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -78,7 +81,6 @@ public class AuthService {
     public LoginResponseDTO login(String snsType, LoginRequestDTO loginRequestDTO) {
         log.info("login");
         String memberEmail = loginRequestDTO.getMemberEmail();
-        String timeZone = loginRequestDTO.getTimeZone();
 
         if (!memberRepository.existsByMemberEmail(memberEmail)) {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
@@ -95,10 +97,15 @@ public class AuthService {
 
         if (authentication != null) {
             TokenDTO tokenDTO = tokenProvider.generateTokenDto(authentication, member.getMemberId());
+            Map<String, String> token = new LinkedHashMap<>();
+            token.put("Authorization", tokenDTO.getAuthorization());
+            token.put("Authorization_Exp", String.valueOf(tokenDTO.getAuthorization_Exp()));
+            token.put("RefreshToken", tokenDTO.getRefreshToken());
+            token.put("RefreshToken_Exp", String.valueOf(tokenDTO.getRefreshToken_Exp()));
 
-            LoginResponseDTO result = new LoginResponseDTO(tokenDTO);
+            LoginResponseDTO result = new LoginResponseDTO(token);
             // 로그인 성공하니까 action++
-            member = MemberEntity.actionUp(member, timeZone);
+            member = MemberEntity.actionUp(member);
 
             // 리프레쉬토큰 DB 저장
             RefreshTokenEntity refreshTokenEntity;
@@ -118,30 +125,41 @@ public class AuthService {
     /**
      * 개인정보정책 확인
      */
-    public boolean policyCheck(JWTRequestDTO dto) {
-        String refreshToken = cutBearer(dto.getRefreshToken());
+    public AuthCheckResponseDTO policyCheck(String refreshToken) {
+        refreshToken = cutBearer(refreshToken);
+        AuthCheckResponseDTO result = new AuthCheckResponseDTO();
         if (tokenProvider.certifyRefreshToken(refreshToken)) {
-            Long memberId = Long.valueOf(tokenProvider.parseClaims(refreshToken).getSubject());
-            return policyRepository.existsByMemberId(memberId);
+            Long memberId = Long.valueOf(tokenProvider.refreshParseClaims(refreshToken).getSubject());
+            if(policyRepository.existsByMemberId(memberId)) {
+                result.setResult(true);
+                result.setMsg("POLICY_IS_EXIST");
+            }
         } else {
-            return false;
+            result.setResult(false);
+            result.setMsg("POLICY_IS_NOT_EXIST");
         }
+
+        return result;
     }
 
     /**
      * 개인정보정책 등록
      */
-    public ResultDTO policyRegister(PolicyRegisterDTO policyRegisterDTO) {
-        String refreshToken = cutBearer(policyRegisterDTO.getRefreshToken());
+    public AuthCheckResponseDTO policyRegister(PolicyRegisterDTO policyRegisterDTO, String refreshToken) {
+        AuthCheckResponseDTO result = new AuthCheckResponseDTO();
         if (tokenProvider.certifyRefreshToken(refreshToken)) {
-            Long memberId = Long.valueOf(tokenProvider.parseClaims(refreshToken).getSubject());
+            Long memberId = Long.valueOf(tokenProvider.refreshParseClaims(refreshToken).getSubject());
             PolicyEntity policyEntity = PolicyRegisterDTO.toPolicy(policyRegisterDTO, memberId);
             policyRepository.save(policyEntity);
 
-            return new ResultDTO("정책 등록완료");
+            result.setResult(true);
+            result.setMsg("POLICY_REGISTER_SUCCESS");
+        } else {
+            result.setResult(false);
+            result.setMsg("POLICY_REGISTER_FAILED");
         }
 
-        return new ResultDTO("정책 등록실패");
+        return result;
     }
 
     /**

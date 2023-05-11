@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class InventoryService {
+    private final NarcoticTitleRepository narcoticTitleRepository;
     private final NarcoticDrugRecordRepository narcoticDrugRecordRepository;
     private final MemberRepository memberRepository;
 
@@ -39,6 +40,7 @@ public class InventoryService {
     private final DrugRecordRepository drugRecordRepository;
     private final DrugPriceRepository drugPriceRepository;
     private final DrugPackageRepository drugPackageRepository;
+    private final NarcoticOTPRepository narcoticOTPRepository;
     private static final long INVITATION_CODE_EXPIRE_TIME = 1000 * 60L;
 
 
@@ -72,7 +74,7 @@ public class InventoryService {
 
     }
 
-    private void mailSend(String pharmacyName) throws MessagingException, UnsupportedEncodingException {
+    private void mailSend(String pharmacyName, String email) throws MessagingException, UnsupportedEncodingException {
         MemberEntity memberEntity = memberRepository.findById(getMemberId()).orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
         String memberEmail = memberEntity.getMemberEmail();
 
@@ -90,7 +92,7 @@ public class InventoryService {
         // Create a new message
         Message message = new MimeMessage(session);
         message.setFrom(new InternetAddress("jnjtech@jxjtech.co.kr", "약매니저"));
-        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(memberEmail));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(email));
         message.setSubject("<약매니저> 재고관리 엑셀 출력본입니다.");
 
         // Create a Multipart object to contain the message body and the attachment
@@ -210,7 +212,7 @@ public class InventoryService {
         Integer drugCode = drugPackageInfoRequestDTO.getDrugCode();
         Integer productCode = drugPackageInfoRequestDTO.getProductCode();
 
-        DrugPriceEntity drugPriceEntity = new DrugPriceEntity();
+        DrugPriceEntity drugPriceEntity;
         if(productCode != null) {
             drugPriceEntity = drugPriceRepository.findByProductCode(productCode)
                     .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
@@ -225,7 +227,7 @@ public class InventoryService {
             List<DrugPackageEntity> drugPackageEntities = drugPackageRepository.findAllByDrugCode(drugCode);
             // 1-1. drugUnit equals 캡슐 || 정
             if(drugUnit.equals("캡슐") || drugUnit.equals("정")) {
-                log.info("둘다 not null이고 캡슐 or 정");
+                log.info("둘다 not null 캡슐 or 정");
                 result = DrugPackageInfoResponseDTO.ofDrugCodeAndProductCodeNotNull(drugPackageEntities, drugPriceEntity);
             } else {
                 // 1-2. 캡슐이나 정이 아닐경우
@@ -341,7 +343,7 @@ public class InventoryService {
     /**
      * 약국엑셀추출
      */
-    public boolean exportPharmacy(Long pharmacyId) throws MessagingException, UnsupportedEncodingException {
+    public boolean exportPharmacy(Long pharmacyId, String email) throws MessagingException, UnsupportedEncodingException {
         if (!pharmacyRepository.existsById(pharmacyId)) {
             return false;
         }
@@ -371,7 +373,7 @@ public class InventoryService {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            mailSend(pharmacyName);
+            mailSend(pharmacyName, email);
 
             return true;
         }
@@ -392,7 +394,19 @@ public class InventoryService {
         for (int i = 0; i < 4; i++) {
             String rStr = Integer.toString(rNum.nextInt(10));
             invitationCode.append(rStr);
+
+            if(i == 3) {
+                List<String> codeList = invitationRepository.findAllGetCode();
+
+                for (String s : codeList) {
+                    if (invitationCode.toString().equals(s)) {
+                        i = 0;
+                        break;
+                    }
+                }
+            }
         }
+
 
         Long regDate = new Date().getTime();
         Long invitationCodeTime = new Date().getTime() + INVITATION_CODE_EXPIRE_TIME;
@@ -626,7 +640,7 @@ public class InventoryService {
     /**
      * 타이틀 엑셀 추출
      */
-    public boolean exportTitle(Long titleId) throws MessagingException, UnsupportedEncodingException {
+    public boolean exportTitle(Long titleId, String email) throws MessagingException, UnsupportedEncodingException {
         if (!titleRepository.existsById(titleId)) {
             return false;
         }
@@ -653,21 +667,127 @@ public class InventoryService {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            mailSend(pharmacyName);
+            mailSend(pharmacyName, email);
 
             return true;
         }
         return false;
     }
 
-    public List<NarcoticDrugRecordDTO> getNarcoticDrugRecord() {
-        List<NarcoticDrugRecordDTO> result = new ArrayList<>();
+    /**
+     * 마약류 의약품 기록 GET
+     */
+    public List<NarcoticDrugRecordDTO> getNarcoticDrugRecord(Long titleId) {
+        List<NarcoticDrugRecordDTO> result;
 
-        List<NarcoticDrugRecordEntity> drugRecordEntities = narcoticDrugRecordRepository.findAll();
+        List<NarcoticDrugRecordEntity> drugRecordEntities = narcoticDrugRecordRepository.findAllByTitleId(titleId);
+        NarcoticTitleEntity title = narcoticTitleRepository.findById(titleId).orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
+        if(!title.getMemberId().equals(getMemberId())) {
+            log.info(title.getMemberId() + "/" + getMemberId());
+            throw new AppException(ErrorCode.NOT_ADMIN);
+        }
 
         result = drugRecordEntities.stream().map(NarcoticDrugRecordEntity::of).collect(Collectors.toList());
 
-
         return result;
+    }
+
+    /**
+     * 마약류 의약품 엑셀등록 OTP 생성
+     */
+    @Transactional
+    public String getOTP() {
+        Long memberId = getMemberId();
+
+        Random rNum = new Random();
+        StringBuilder invitationCode = new StringBuilder();
+
+        for (int i = 0; i < 6; i++) {
+            String rStr = Integer.toString(rNum.nextInt(10));
+            invitationCode.append(rStr);
+
+            if(i == 3) {
+                List<String> codeList = narcoticOTPRepository.findAllGetCode();
+
+                for (String s : codeList) {
+                    if (invitationCode.toString().equals(s)) {
+                        i = 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+        Optional<NarcoticOTPEntity> optionalNarcoticOTPEntity = narcoticOTPRepository.findByMemberId(memberId);
+        optionalNarcoticOTPEntity.ifPresent(narcoticOTPRepository::delete);
+
+        NarcoticOTPEntity entity = new NarcoticOTPEntity(memberId, invitationCode.toString());
+        narcoticOTPRepository.save(entity);
+        log.info(entity.getRegDate() + "");
+
+        return invitationCode.toString();
+    }
+
+    /**
+     * 마약류 의약품 타이틀 GET
+     */
+    public List<NarcoticTitleEntity> getNarcoticTitle() {
+        Long memberId = getMemberId();
+
+        List<NarcoticTitleEntity> narcoticTitleEntities = narcoticTitleRepository.findAllByMemberId(memberId);
+        if(narcoticTitleEntities.size() > 0) {
+            return narcoticTitleEntities;
+        }
+
+        return null;
+    }
+
+    /**
+     * 마약류 의약품 재고검사
+     */
+    @Transactional
+    public boolean narcoticInspection(Long drugRecordId, NarcoticInspectionDTO dto) {
+        Optional<NarcoticDrugRecordEntity> narcoticDrugRecordEntity = narcoticDrugRecordRepository.findById(drugRecordId);
+
+        if(narcoticDrugRecordEntity.isEmpty()) {
+            return false;
+        }
+
+        int check = dto.getCheck();
+        String nowDrugQuantity = dto.getNowDrugQuantity();
+
+        narcoticDrugRecordEntity.get().setCheck(check);
+        narcoticDrugRecordEntity.get().setNowDrugQuantity(nowDrugQuantity);
+
+        return true;
+    }
+
+    @Transactional
+    public boolean deleteNarcoticTitle(Long titleId) {
+        Optional<NarcoticTitleEntity> narcoticTitleEntity = narcoticTitleRepository.findById(titleId);
+
+        if(narcoticTitleEntity.isEmpty()) {
+            return false;
+        }
+
+        narcoticTitleRepository.delete(narcoticTitleEntity.get());
+
+        return true;
+    }
+
+    @Transactional
+    public boolean checkChange(Long drugRecordId) {
+        NarcoticDrugRecordEntity narcoticDrugRecordEntity = narcoticDrugRecordRepository.findById(drugRecordId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
+
+        if(narcoticDrugRecordEntity.getCheck() == 0) {
+            narcoticDrugRecordEntity.setCheck(1);
+            return true;
+        } else if(narcoticDrugRecordEntity.getCheck() == 1) {
+            narcoticDrugRecordEntity.setCheck(0);
+            return true;
+        } else {
+            return false;
+        }
     }
 }

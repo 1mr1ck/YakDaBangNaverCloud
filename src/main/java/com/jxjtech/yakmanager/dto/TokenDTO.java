@@ -32,18 +32,18 @@ public class TokenDTO {
 
     public static TokenDTO of(Map<String, String> reIssueToken) {
 
-        if(reIssueToken.containsKey("refreshToken")) {
+        if(reIssueToken.containsKey("RefreshToken")) {
             return TokenDTO.builder()
-                    .Authorization(reIssueToken.get("accessToken"))
-                    .Authorization_Exp(Long.valueOf(reIssueToken.get("accessTokenExpiresIn")))
-                    .RefreshToken(reIssueToken.get("refreshToken"))
-                    .RefreshToken_Exp(Long.valueOf(reIssueToken.get("refreshTokenExpiresIn")))
+                    .Authorization(reIssueToken.get("Authorization"))
+                    .Authorization_Exp(Long.valueOf(reIssueToken.get("Authorization_Exp")))
+                    .RefreshToken(reIssueToken.get("RefreshToken"))
+                    .RefreshToken_Exp(Long.valueOf(reIssueToken.get("RefreshToken_Exp")))
                     .result(true)
                     .build();
         } else {
             return TokenDTO.builder()
-                    .Authorization(reIssueToken.get("accessToken"))
-                    .Authorization_Exp(Long.valueOf(reIssueToken.get("accessTokenExpiresIn")))
+                    .Authorization(reIssueToken.get("Authorization"))
+                    .Authorization_Exp(Long.valueOf(reIssueToken.get("Authorization_Exp")))
                     .RefreshToken(reIssueToken.get("notIssue"))
                     .RefreshToken_Exp(null)
                     .result(true)

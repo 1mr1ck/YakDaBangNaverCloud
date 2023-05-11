@@ -1,0 +1,38 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%green(%-4relative - %d{yyyy-MM-dd HH:mm:ss.SSS} ) %magenta([%thread]) %highlight(%-5level) %cyan(%logger{35}) - %yellow(%msg%n)</pattern>
+        </encoder>
+    </appender>
+
+    <timestamp key="timestamp" datePattern="yyyyMMdd"/>
+
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+<!--        <file>/home/log/logback/YakManagerLog_${timestamp}.log</file> &lt;!&ndash; 로그 파일 저장 경로 &ndash;&gt;-->
+        <file>D:/log/YakManagerLog_${timestamp}.log</file> <!-- 로그 파일 저장 경로 -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+<!--    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        <file>D:/log/YakManagerLog.log</file>-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            &lt;!&ndash; daily rollover &ndash;&gt;-->
+<!--            <fileNamePattern>D:/log/YakManagerLog-%d{yyyy-MM-dd}.%d{yyyy-MM-dd}.log</fileNamePattern>-->
+<!--            &lt;!&ndash; keep 30 days' worth of history capped at 3GB total size &ndash;&gt;-->
+<!--            <maxHistory>7</maxHistory>-->
+<!--        </rollingPolicy>-->
+<!--        <encoder>-->
+<!--            <pattern>%d{yyyy-MM-dd HH:mm:ss} %msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+
+    <logger name="com.jxjtech.yakmanager.logging.LoggingInterceptor" level="info" additivity="true">
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

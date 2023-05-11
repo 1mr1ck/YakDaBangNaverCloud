@@ -4,6 +4,7 @@ import com.jxjtech.yakmanager.entity.InvitationEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface InvitationRepository extends JpaRepository<InvitationEntity, Long> {
@@ -13,4 +14,7 @@ public interface InvitationRepository extends JpaRepository<InvitationEntity, Lo
 
     @Query(value = "SELECT * FROM invitation WHERE invitationCode = ?", nativeQuery = true)
     Optional<InvitationEntity> findByInvitationCode(String invitationCode);
+
+    @Query(value = "SELECT invitationCode FROM invitation", nativeQuery = true)
+    List<String> findAllGetCode();
 }

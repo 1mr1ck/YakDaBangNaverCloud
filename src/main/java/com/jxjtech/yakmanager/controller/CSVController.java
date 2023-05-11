@@ -19,8 +19,8 @@ public class CSVController {
     private final FileService fileService;
 
     @PostMapping("/upload")
-    public String uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-        fileService.saveFile(file);
+    public String uploadFile(@RequestParam("file") MultipartFile file, @RequestParam("otp") String otp) throws IOException {
+        fileService.saveFile(file, otp);
         return "redirect:/csvUpload";
     }
 }

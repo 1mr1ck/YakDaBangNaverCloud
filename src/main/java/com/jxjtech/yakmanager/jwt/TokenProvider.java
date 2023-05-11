@@ -3,11 +3,14 @@ package com.jxjtech.yakmanager.jwt;
 import com.jxjtech.yakmanager.dto.TokenDTO;
 import com.jxjtech.yakmanager.entity.MemberEntity;
 import com.jxjtech.yakmanager.entity.RefreshTokenEntity;
+import com.jxjtech.yakmanager.exception.AppException;
+import com.jxjtech.yakmanager.exception.ErrorCode;
 import com.jxjtech.yakmanager.repository.MemberRepository;
 import com.jxjtech.yakmanager.repository.RefreshTokenRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,14 +35,17 @@ public class TokenProvider {
     private static final String BEARER_TYPE = "Bearer ";
     private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 30L;  //30분
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 14L;  // 2주
-    private final Key key;
+    private final Key accessKey;
+    private final Key refreshKey;
 
-    public TokenProvider(@Value("${jwt.secret}") String secret,
+    public TokenProvider(@Value("${jwt.accessSecret}") String accessSecret, @Value("${jwt.refreshSecret}") String refreshSecret,
                          MemberRepository memberRepository,
                          RefreshTokenRepository refreshTokenRepository) {
-        log.info("TokenProvider");
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
-        this.key = Keys.hmacShaKeyFor(keyBytes);
+
+        byte[] accessKeyBytes = Decoders.BASE64.decode(accessSecret);
+        byte[] refreshKeyBytes = Decoders.BASE64.decode(refreshSecret);
+        this.accessKey = Keys.hmacShaKeyFor(accessKeyBytes);
+        this.refreshKey = Keys.hmacShaKeyFor(refreshKeyBytes);
         this.memberRepository = memberRepository;
         this.refreshTokenRepository = refreshTokenRepository;
     }
@@ -48,7 +54,6 @@ public class TokenProvider {
      *  로그인 -> 토큰 생성
      */
     public TokenDTO generateTokenDto(Authentication authentication, Long memberId) {
-        log.info("generateTokenDto");
 
         String authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
         MemberEntity entity = memberRepository.findById(memberId).orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
@@ -63,7 +68,7 @@ public class TokenProvider {
                 claim("nickName", entity.getMemberNickName()).
                 setIssuedAt(new Date(System.currentTimeMillis())). // 토큰발행날짜
                 setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRE_TIME)).
-                signWith(key, SignatureAlgorithm.HS256).
+                signWith(accessKey, SignatureAlgorithm.HS256).
                 compact();
 
         String refreshToken =
@@ -73,11 +78,11 @@ public class TokenProvider {
                 claim(REFRESH_KEY, authorities).
                 setIssuedAt(new Date(System.currentTimeMillis())). // 토큰발행날짜
                 setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRE_TIME)).
-                signWith(key, SignatureAlgorithm.HS256).
+                signWith(refreshKey, SignatureAlgorithm.HS256).
                 compact();
 
-        Long accessTokenExpire = Jwts.parserBuilder().setSigningKey(this.key).build().parseClaimsJws(accessToken).getBody().getExpiration().getTime();
-        Long refreshTokenExpire = Jwts.parserBuilder().setSigningKey(this.key).build().parseClaimsJws(refreshToken).getBody().getExpiration().getTime();
+        Long accessTokenExpire = Jwts.parserBuilder().setSigningKey(this.accessKey).build().parseClaimsJws(accessToken).getBody().getExpiration().getTime();
+        Long refreshTokenExpire = Jwts.parserBuilder().setSigningKey(this.refreshKey).build().parseClaimsJws(refreshToken).getBody().getExpiration().getTime();
 
         return TokenDTO.builder().result(true).Authorization(BEARER_TYPE + accessToken).Authorization_Exp(accessTokenExpire).RefreshToken(BEARER_TYPE + refreshToken).RefreshToken_Exp(refreshTokenExpire).memberId(memberId.toString()).build();
     }
@@ -87,13 +92,12 @@ public class TokenProvider {
      * -> JwtFilter
      */
     public Authentication getAuthentication(String accessToken) {
-        log.info("getAuthentication");
 
-        Claims claims = parseClaims(accessToken);
+        Claims claims = accessParseClaims(accessToken);
 
         if (claims.get(REFRESH_KEY) == null) {
             if (claims.get(AUTHORITIES_KEY) == null) {
-                throw new RuntimeException("권한 정보가 없는 토큰입니다.");
+                throw new JwtException("잘못된 토큰입니다.", new AppException(ErrorCode.INVALID_JWT_TOKEN));
             }
         }
 
@@ -107,59 +111,11 @@ public class TokenProvider {
      *  Header로 준 accesstoken 유효성 검사
      */
     public boolean validateToken(String token) {
-        log.info("validateToken");
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(accessKey).build().parseClaimsJws(token);
             return true;
-        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-//            throw new MalformedJwtException("구조적인 문제가 있는 JWT인 경우");
+        } catch (SecurityException | MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
             return false;
-        } catch (UnsupportedJwtException e) {
-//            throw new UnsupportedJwtException("수신한 JWT의 형식이 애플리케이션에서 원하는 형식과 맞지 않은 경우 예를 들면, 암호화된 JWT를 사용하는 애플리케이션에 암호화되지 않은 JWT가 전달되는 경우에 이예외 발생");
-            return false;
-        } catch (IllegalArgumentException e) {
-//            throw new IllegalArgumentException("잘못된 토큰");
-            return false;
-        }
-    }
-
-    /**
-     *  자동로그인 액세스토큰 유효성 검사
-     */
-    public boolean validateAccessToken(String token) {
-        log.info("validateToken");
-        try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-            return true;
-        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-            throw new MalformedJwtException("구조적인 문제가 있는 JWT인 경우");
-        } catch (UnsupportedJwtException e) {
-            throw new UnsupportedJwtException("수신한 JWT의 형식이 애플리케이션에서 원하는 형식과 맞지 않은 경우 예를 들면, 암호화된 JWT를 사용하는 애플리케이션에 암호화되지 않은 JWT가 전달되는 경우에 이예외 발생");
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 토큰");
-        } catch (ExpiredJwtException e) {
-            log.error("ExpiredJwtException: 유효 기간이 지난 액세스토큰을 수신한 경우");
-            return false;
-        }
-    }
-
-    /**
-     *  토큰재발급 -> 액세스토큰 검사
-     */
-    public boolean certifyAccessToken(String token) {
-        log.info("certifyAccessToken");
-        try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-            return false;
-        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-            throw new MalformedJwtException("구조적인 문제가 있는 JWT인 경우");
-        } catch (UnsupportedJwtException e) {
-            throw new UnsupportedJwtException("수신한 JWT의 형식이 애플리케이션에서 원하는 형식과 맞지 않은 경우 예를 들면, 암호화된 JWT를 사용하는 애플리케이션에 암호화되지 않은 JWT가 전달되는 경우에 이예외 발생");
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 토큰");
-        } catch (ExpiredJwtException e) {
-            log.error("ExpiredJwtException: 유효 기간이 지난 액세스토큰을 수신한 경우");
-            return true;
         }
     }
 
@@ -167,19 +123,13 @@ public class TokenProvider {
      *  토큰재발급 -> 리프레쉬토큰 검사
      */
     public boolean certifyRefreshToken(String token) {
-        log.info("certifyRefreshToken");
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(token);
             log.info("정상 : " + token);
             return true;
-        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-            throw new MalformedJwtException("구조적인 문제가 있는 JWT인 경우");
-        } catch (UnsupportedJwtException e) {
-            throw new UnsupportedJwtException("수신한 JWT의 형식이 애플리케이션에서 원하는 형식과 맞지 않은 경우 예를 들면, 암호화된 JWT를 사용하는 애플리케이션에 암호화되지 않은 JWT가 전달되는 경우에 이예외 발생");
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 토큰");
-        } catch (ExpiredJwtException e) {
-            throw new RuntimeException("RefreshToken Expired");
+        } catch (SecurityException | MalformedJwtException | ExpiredJwtException | IllegalArgumentException |
+                 UnsupportedJwtException e) {
+            throw new JwtException("잘못된 토큰입니다.", new AppException(ErrorCode.INVALID_JWT_TOKEN));
         }
     }
 
@@ -188,25 +138,24 @@ public class TokenProvider {
      *  true -> 토큰 재발급 시작
      */
     public Map<String, String> ReIssueToken(String refreshToken) {
-        log.info("ReIssueToken");
-
         try {
-            Claims claimsJws2 = Jwts.parserBuilder().setSigningKey(this.key).build().parseClaimsJws(refreshToken).getBody();
+            Claims claimsJws2 = Jwts.parserBuilder().setSigningKey(this.refreshKey).build().parseClaimsJws(refreshToken).getBody();
 
             Map<String, String> reIssuedToken = new LinkedHashMap<>();
             log.info("refresh 기간 : " + claimsJws2.getExpiration() + "\n현재시간 : " + new Date());
+            reIssuedToken.put("Authorization", BEARER_TYPE + recreationAccessToken(claimsJws2.get("sub").toString(), claimsJws2.get("refreshTokenKey")));
+            String accessToken = reIssuedToken.get("Authorization").substring(7);
+            Long accessTokenExpire = Jwts.parserBuilder().setSigningKey(this.accessKey).build().parseClaimsJws(accessToken).getBody().getExpiration().getTime(); // long 타입
+            reIssuedToken.put("Authorization_Exp", String.valueOf(accessTokenExpire));
             if (claimsJws2.getExpiration().getTime() - new Date().getTime() < 1000 * 60 * 60 * 24 * 7L) {
-                reIssuedToken.put("accessToken", BEARER_TYPE + recreationAccessToken(claimsJws2.get("sub").toString(), claimsJws2.get("refreshTokenKey")));
-                reIssuedToken.put("refreshToken", BEARER_TYPE + recreationRefreshToken(claimsJws2.get("sub").toString(), claimsJws2.get("refreshTokenKey")));
-                String refreshTokens = reIssuedToken.get("refreshToken");
-                Long refreshTokenExpire = Jwts.parserBuilder().setSigningKey(this.key).build().parseClaimsJws(refreshTokens).getBody().getExpiration().getTime(); // long 타입
-                reIssuedToken.put("refreshTokenExpiresIn", String.valueOf(refreshTokenExpire));
+                reIssuedToken.put("RefreshToken", BEARER_TYPE + recreationRefreshToken(claimsJws2.get("sub").toString(), claimsJws2.get("refreshTokenKey")));
+                String refreshTokens = reIssuedToken.get("RefreshToken");
+                Long refreshTokenExpire = Jwts.parserBuilder().setSigningKey(this.refreshKey).build().parseClaimsJws(refreshTokens).getBody().getExpiration().getTime(); // long 타입
+                reIssuedToken.put("RefreshToken_Exp", String.valueOf(refreshTokenExpire));
             } else {
-                reIssuedToken.put("accessToken", BEARER_TYPE + recreationAccessToken(claimsJws2.get("sub").toString(), claimsJws2.get("refreshTokenKey")));
+                reIssuedToken.put("RefreshToken", null);
+                reIssuedToken.put("RefreshToken_Exp", null);
             }
-            String accessToken = reIssuedToken.get("accessToken").substring(7);
-            Long accessTokenExpire = Jwts.parserBuilder().setSigningKey(this.key).build().parseClaimsJws(accessToken).getBody().getExpiration().getTime(); // long 타입
-            reIssuedToken.put("accessTokenExpiresIn", String.valueOf(accessTokenExpire));
             reIssuedToken.put("memberKey", claimsJws2.get("sub").toString());
 
             return reIssuedToken;
@@ -221,17 +170,20 @@ public class TokenProvider {
      *  -> ReIssueToken
      */
     public String recreationAccessToken(String memberId, Object roles) {
-        log.info("recreationAccessToken");
+        MemberEntity entity = memberRepository.findById(Long.valueOf(memberId)).orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
 
         String accessToken =
                 Jwts.builder().
-                setHeaderParam(Header.TYPE, Header.JWT_TYPE).
-                setSubject(memberId).
-                claim(AUTHORITIES_KEY, roles).
-                setIssuedAt(new Date(System.currentTimeMillis())). // 토큰발행날짜
-                setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRE_TIME)).
-                signWith(key, SignatureAlgorithm.HS256).
-                compact();
+                        setHeaderParam(Header.TYPE, Header.JWT_TYPE).
+                        setSubject(memberId).
+                        claim(AUTHORITIES_KEY, roles).
+                        claim("email", entity.getMemberEmail()).
+                        claim("socialType", entity.getSnsType()).
+                        claim("nickName", entity.getMemberNickName()).
+                        setIssuedAt(new Date(System.currentTimeMillis())). // 토큰발행날짜
+                        setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRE_TIME)).
+                        signWith(accessKey, SignatureAlgorithm.HS256).
+                        compact();
 
         return accessToken;
     }
@@ -241,8 +193,6 @@ public class TokenProvider {
      *  -> ReIssueToken
      */
     public String recreationRefreshToken(String memberId, Object roles) {
-        log.info("recreationRefreshToken");
-
         String refreshToken =
                 Jwts.builder().
                 setHeaderParam(Header.TYPE, Header.JWT_TYPE).
@@ -250,7 +200,7 @@ public class TokenProvider {
                 claim(REFRESH_KEY, roles).
                 setIssuedAt(new Date(System.currentTimeMillis())). // 토큰발행날짜
                 setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRE_TIME)).
-                signWith(key, SignatureAlgorithm.HS256).
+                signWith(refreshKey, SignatureAlgorithm.HS256).
                 compact();
 
         MemberEntity member = memberRepository.findByMemberId(Long.valueOf(memberId));
@@ -270,12 +220,20 @@ public class TokenProvider {
      * 토큰복호화
      * -> getAuthentication
      */
-    public Claims parseClaims(String accessToken) {
-        log.info("parseClaims");
+    public Claims accessParseClaims(String accessToken) {
         try {
-            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
-        } catch (ExpiredJwtException e) {
-            return e.getClaims();
+            return Jwts.parserBuilder().setSigningKey(accessKey).build().parseClaimsJws(accessToken).getBody();
+        } catch (SecurityException | MalformedJwtException | ExpiredJwtException | IllegalArgumentException |
+                 UnsupportedJwtException e) {
+            throw new JwtException("잘못된 토큰입니다.", new AppException(ErrorCode.INVALID_JWT_TOKEN));
+        }
+    }
+    public Claims refreshParseClaims(String accessToken) {
+        try {
+            return Jwts.parserBuilder().setSigningKey(refreshKey).build().parseClaimsJws(accessToken).getBody();
+        } catch (SecurityException | MalformedJwtException | ExpiredJwtException | IllegalArgumentException |
+                 UnsupportedJwtException e) {
+            throw new JwtException("잘못된 토큰입니다.", new AppException(ErrorCode.INVALID_JWT_TOKEN));
         }
     }
 }

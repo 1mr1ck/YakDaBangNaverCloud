@@ -36,8 +36,6 @@ public class MemberEntity {
     private Authority memberRole;
     @Column(name = "snsType")
     private String snsType;
-    @Column(name = "timeZone")
-    private String timeZone;
     @Column(name = "joinDate")
     @CreationTimestamp
     private Timestamp joinDate;
@@ -53,13 +51,11 @@ public class MemberEntity {
         this.memberNickName = dto.getMemberNickName();
         this.snsType = dto.getSnsType();
         this.memberRole = dto.getMemberRole();
-        this.timeZone = dto.getTimeZone();
     }
 
-    public static MemberEntity actionUp(MemberEntity member, String timeZone) {
+    public static MemberEntity actionUp(MemberEntity member) {
         MemberEntity result = member;
         result.setMemberAction(result.getMemberAction() + 1);
-        result.setTimeZone(timeZone);
 
         return  result;
     }

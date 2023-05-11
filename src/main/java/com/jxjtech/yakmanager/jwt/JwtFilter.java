@@ -26,8 +26,8 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     private static final String[] PERMIT_ALL = {
-            "/api/auth/check", "/api/auth/login", "/api/auth/register/", "/swagger-ui", "/v3", "/index", "/img", "/favicon", "/api/board/notice",
-            "/api/auth/token", "/policy", "/api/DBUpdate", "/csvUpload", "/upload", "/api/inventory/drugs/package", "/api/inventory/drugs/narcoticDrugRecord"
+            "/api/auth/check/token", "/api/auth/login", "/api/auth/register/", "/swagger-ui", "/v3", "/index", "/img", "/favicon", "/api/board/notice",
+            "/api/auth/token", "/policy", "/api/DBUpdate", "/csvUpload", "/upload", "/api/inventory/drugs/package", "/api/drugs/QRCode"
     };
 
     @Override
@@ -35,13 +35,13 @@ public class JwtFilter extends OncePerRequestFilter {
         boolean pathStart = false;
         try {
             String path = request.getServletPath();
-            log.info(request.getRemoteAddr() + " : " + request.getServletPath());
             for (String p : PERMIT_ALL) {
                 if (path.startsWith(p)) {
                     pathStart = path.startsWith(p);
                     break;
                 }
             }
+            log.info(path + "/" + pathStart);
             if (pathStart) {
                 filterChain.doFilter(request, response);
             } else {

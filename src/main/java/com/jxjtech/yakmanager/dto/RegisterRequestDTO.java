@@ -10,6 +10,5 @@ public class RegisterRequestDTO {
     private String memberEmail;
     @Schema(example = "test")
     private String memberNickName;
-    @Schema(example = "Asia/Seoul")
-    private String timeZone;
+
 }

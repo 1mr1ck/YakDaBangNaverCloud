@@ -1,8 +1,9 @@
 package com.jxjtech.yakmanager.service;
 
-import com.jxjtech.yakmanager.dto.DrugPriceDTO;
 import com.jxjtech.yakmanager.dto.DrugSearchForInfoDTO;
 import com.jxjtech.yakmanager.dto.Drug_infoAllDTO;
+import com.jxjtech.yakmanager.dto.QRCodeResponseDTO;
+import com.jxjtech.yakmanager.dto.QRCodeURLDTO;
 import com.jxjtech.yakmanager.entity.*;
 import com.jxjtech.yakmanager.exception.AppException;
 import com.jxjtech.yakmanager.exception.ErrorCode;
@@ -10,10 +11,19 @@ import com.jxjtech.yakmanager.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,7 +37,6 @@ public class DrugService {
     private final Drug_info1Repository drug_info1Repository;
     private final Drug_info2Repository drug_info2Repository;
     private final DrugNameRepository drugNameRepository;
-    private final DrugPriceRepository drugPriceRepository;
     private final DrugImgRepository drugImgRepository;
 
 
@@ -71,11 +80,22 @@ public class DrugService {
         return DrugSearchForInfoDTO.getList(drugNameEntities);
     }
 
+    public QRCodeResponseDTO drugInfoByQRCode(QRCodeURLDTO dto) {
+        Long standardCode = dto.getStandardCode();
+
+        DrugPackageEntity entity = drugPackageRepository.findByStandardCode(standardCode)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
+
+
+        return new QRCodeResponseDTO(entity);
+    }
+
     @Transactional
     public boolean dbUpdate() {
         List<Drug_info1Entity> drug_info1Entities = drug_info1Repository.findAll();
 
         for (int i = 0; i < drug_info1Entities.size(); i++) {
+            log.info(drug_info1Entities.get(i).getProduct_name());
             String material_element = drug_info1Entities.get(i).getMaterial_element();
 
             if (material_element.equals("") || isNumeric(material_element)) {
@@ -93,7 +113,6 @@ public class DrugService {
                             me2[j] = " " + me2[j];
                         }
                     }
-                    log.info("index i : " + i);
                     if (me2[0].equals("") && me2.length < 5) {
                         result += me2[1] + me2[3];
                     } else if(me2.length == 4) {
@@ -115,6 +134,7 @@ public class DrugService {
                     }
                 }
                 log.info("index i : " + i + " / me2 = " + me2[0]);
+
                 if (me2.length < 5) {
                     result += me2[1] + me2[3];
                 } else {

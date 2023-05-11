@@ -4,29 +4,23 @@ server:
   error:
     include-stacktrace: never
 
+
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3307/yakdabang?serverTimezone=UTC&characterEncoding=UTF-8&allowLoadLocalInfile=true
+    url: jdbc:mysql://localhost:3307/YakDaBang?serverTimezone=UTC&characterEncoding=UTF-8
     username: root
     password: root
-
-#    url: jdbc:mysql://db-g6ql6.pub-cdb.ntruss.com:3306/yakdabang?serverTimezone=UTC&characterEncoding=UTF-8&
-#    username: yakman
-#    password: fkdls1124!
 
   jpa:
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     show-sql: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
       naming:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-
-  logging:
-    level:
-      com.tutorial: debug
+    open-in-view: false
 
   mvc:
     view:
@@ -39,7 +33,8 @@ spring:
       max-request-size: 10MB
 
 jwt:
-  secret: c2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQtc2lsdmVybmluZS10ZWNoLXNwcmluZy1ib290LWp3dC10dXRvcmlhbC1zZWNyZXQK
+  accessSecret: anhqLXRlY2gtc3ByaW5nLWJvb3Qtand0LXNlY3VyaXR5LXNlY3JldC1hY2Nlc3NrZXktanhqLXRlY2gteWFrbWFuYWdlci1qd3Qtc2VjdXJpdHktanhqLXRlY2g=
+  refreshSecret: anhqLXRlY2gtc3ByaW5nLWJvb3Qtand0LXNlY3VyaXR5LXNlY3JldC1yZWZyZXNoa2V5LWp4ai10ZWNoLXlha21hbmFnZXItand0LXNlY3VyaXR5LWp4ai10ZWNo
 
 springdoc:
   host:
@@ -59,5 +54,3 @@ springdoc:
   default-produces-media-type: application/json;charset=UTF-8
 
 fileDir: D:/YakManager/src/drugRecord/
-
-
