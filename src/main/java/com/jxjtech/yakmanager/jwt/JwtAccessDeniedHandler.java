@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -19,7 +22,6 @@ import java.util.Map;
 @Slf4j
 public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
-    private final ThreadLocal<String> responseBody = new ThreadLocal<>();
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException {
         log.info("handle");
@@ -27,21 +29,13 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
         String body = "token error";
 
         response.sendError(HttpServletResponse.SC_FORBIDDEN, body);
-        responseBody.set(body);
     }
 
-    public void handle(HttpServletRequest request, HttpServletResponse response, AppException e) throws IOException {
-        Map<String, String> body = new LinkedHashMap<>();
-        body.put("status", String.valueOf(e.getErrorCode().getHttpStatus().value()));
-        body.put("error", e.getErrorCode().getHttpStatus().name());
-        body.put("message", e.getErrorCode().getMessage());
-        body.put("path", request.getServletPath());
+    public void handleExpired(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException {
+        log.info("handle");
 
-        response.sendError(e.getErrorCode().getHttpStatus().value(), body.get("message"));
-        responseBody.set(body.toString());
-    }
+        String body = "token expired";
 
-    public String getResponseBody() {
-        return responseBody.get();
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, body);
     }
 }

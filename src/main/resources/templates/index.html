@@ -17,6 +17,7 @@
 <div class="title">
     <dd><input class="imgInput" type="file" id="input_img" accept="image/*"></dd>
     <dd><input value="이미지등록" class="imgUpBtn" type="button" id="UploadBtn" onclick="imgUpload()"></dd>
+    <dd><input name="jxjPassword" class="jxjPassword" type="text" id="jxjPassword" placeholder="비밀번호를 입력해 주세요." style="width: 200px"></dd>
 </div>
 <h2>이미지가 5개 이상일 때 새로등록하면 맨위에 이미지는 자동삭제 됩니다.</h2>
 <div class="img-sample">
@@ -26,6 +27,7 @@
     const img_box = document.querySelector('.img-sample');
 
     function imgUpload() {
+        const password = document.getElementById('jxjPassword').value;
         let file = document.getElementById('input_img');
         let form = new FormData();
         form.append("image", file.files[0])
@@ -41,6 +43,7 @@
         };
 
         $.ajax(imageSettings).done(function (response) {
+            console.log(password);
             console.log(response);
             let jx = JSON.parse(response);
             let img_url = jx.data.url;
@@ -57,7 +60,8 @@
                     "Content-Type": "application/json"
                 },
                 "data": JSON.stringify({
-                    "img_url": img_url
+                    "img_url": img_url,
+                    "password": password
                 }),
             };
 
@@ -100,6 +104,8 @@
     }
 
     function deleteImgBox(img_url_id) {
+        const password = document.getElementById('jxjPassword').value;
+
         let settings = {
             "url": "/img/deleteImgBox/" + img_url_id,
             "method": "DELETE",
@@ -108,7 +114,7 @@
                 "Content-Type": "application/json"
             },
             "data": JSON.stringify({
-                "img_url_id": img_url_id
+                "password": password
             }),
         };
 

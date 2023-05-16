@@ -81,9 +81,8 @@ public class DrugRecordEntity {
         }
 
         ObjectMapper objectMapper = new ObjectMapper();
-        String result = objectMapper.writeValueAsString(resultList);
 
-        return result;
+        return objectMapper.writeValueAsString(resultList);
     }
 
     private static String getQuantity(List<PackageInfoDTO> packageInfo) throws JsonProcessingException {
@@ -97,5 +96,14 @@ public class DrugRecordEntity {
         String result = objectMapper.writeValueAsString(resultList);
 
         return result;
+    }
+
+    public static void changePackage(List<DrugRecordEntity> entities) {
+        for(DrugRecordEntity entity : entities) {
+            String drugPackage = entity.getDrugPackage();
+            String modifyDrugPackage = drugPackage.replaceAll("'", "\"");
+
+            entity.setDrugPackage(modifyDrugPackage);
+        }
     }
 }

@@ -4,11 +4,16 @@ server:
   error:
     include-stacktrace: never
 
+  servlet:
+    encoding:
+      charset: UTF-8
+      force-request: true
+      force-response: true
 
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3307/YakDaBang?serverTimezone=UTC&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3307/yakdabang?serverTimezone=UTC&characterEncoding=UTF-8
     username: root
     password: root
 

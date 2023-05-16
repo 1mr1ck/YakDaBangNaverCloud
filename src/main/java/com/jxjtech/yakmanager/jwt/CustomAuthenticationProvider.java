@@ -2,6 +2,7 @@ package com.jxjtech.yakmanager.jwt;
 
 import com.jxjtech.yakmanager.entity.MemberEntity;
 import com.jxjtech.yakmanager.repository.MemberRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@Slf4j
 public class CustomAuthenticationProvider implements AuthenticationProvider {
 
     private final MemberRepository memberRepository;

@@ -26,10 +26,16 @@ public class AuthController {
         return ResponseEntity.ok(jwtService.reIssue(refreshToken));
     }
 
+    @PostMapping("/check/recentLogin")
+    @Operation(summary = "최근 로그인 체크")
+    public ResponseEntity<?> checkRecentLogin(@RequestHeader(name = "phoneValue") String phoneValue) {
+        return ResponseEntity.ok(authService.recentLogin(phoneValue));
+    }
+
     @PostMapping("/check/token")
     @Operation(summary = "자동 로그인 토큰체크")
-    public ResponseEntity<?> rememberMeTokenCheck(@RequestHeader(name = "refreshToken") String refreshToken) throws Exception {
-        return ResponseEntity.ok(jwtService.rememberMe(refreshToken));
+    public ResponseEntity<?> rememberMeTokenCheck(@RequestHeader(name = "refreshToken") String refreshToken, @RequestHeader(name = "snsType") String snsType, @RequestHeader(name = "phoneValue") String phoneValue, @RequestHeader(name = "buildVersion") String buildVersion) throws Exception {
+        return ResponseEntity.ok(jwtService.rememberMe(refreshToken, phoneValue, buildVersion, snsType));
     }
 
     @PostMapping("/register/{snsType}")
@@ -46,14 +52,14 @@ public class AuthController {
 
     @PostMapping("/check/nickName")
     @Operation(description = "닉네임 중복 체크", summary = "닉네임 중복 체크")
-    public boolean checkNickName(@RequestBody IsDuplicateNickNameDTO IsDuplicateNickNameDTO) {
-        return authService.isDuplicateNickName(IsDuplicateNickNameDTO);
+    public boolean checkNickName(@RequestBody IsDuplicateNickNameDTO dto) {
+        return authService.isDuplicateNickName(dto);
     }
 
     @PostMapping("/login/{snsType}")
     @Operation(description = "로그인 API", summary = "로그인")
-    public ResponseEntity<?> memberLogin(@PathVariable String snsType, @RequestBody LoginRequestDTO loginRequestDTO) {
-        return ResponseEntity.ok(authService.login(snsType, loginRequestDTO));
+    public ResponseEntity<?> memberLogin(@PathVariable String snsType, @RequestBody LoginRequestDTO loginRequestDTO, @RequestHeader(name = "osType") String osType, @RequestHeader(name = "phoneValue") String phoneValue, @RequestHeader(name = "buildVersion") String buildVersion) {
+        return ResponseEntity.ok(authService.login(snsType, loginRequestDTO, osType, phoneValue, buildVersion));
     }
 
     @GetMapping("/check/policy")

@@ -6,4 +6,5 @@ import lombok.Data;
 public class IsDuplicateEmailDTO {
 
     private String memberEmail;
+    private String snsType;
 }

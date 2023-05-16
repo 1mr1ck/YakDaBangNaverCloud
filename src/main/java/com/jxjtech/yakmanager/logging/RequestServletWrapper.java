@@ -4,8 +4,10 @@ import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class RequestServletWrapper extends HttpServletRequestWrapper {
@@ -28,55 +30,28 @@ public class RequestServletWrapper extends HttpServletRequestWrapper {
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
-
-        StringReader reader = new StringReader(requestData);
-
+        // ByteArrayInputStream을 사용한 이유는 한글이 inputStream이 되지 않아서이다.
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(requestData.getBytes(StandardCharsets.UTF_8));
         return new ServletInputStream() {
-
-            private ReadListener readListener = null;
-
-            @Override
-            public int read() throws IOException {
-
-                return reader.read();
-            }
+            private final ReadListener readListener = null;
 
             @Override
-            public void setReadListener(ReadListener listener) {
-                this.readListener = listener;
-
-                try {
-                    if (!isFinished()) {
-
-                        readListener.onDataAvailable();
-                    } else {
-
-                        readListener.onAllDataRead();
-                    }
-                } catch (IOException io) {
-
-                    io.printStackTrace();
-                }
-
+            public boolean isFinished() {
+                return false;
             }
 
             @Override
             public boolean isReady() {
-
-                return isFinished();
+                return false;
             }
 
             @Override
-            public boolean isFinished() {
+            public void setReadListener(ReadListener listener) {
+            }
 
-                try {
-                    return reader.read() < 0;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                return false;
-
+            @Override
+            public int read() throws IOException {
+                return byteArrayInputStream.read();
             }
         };
     }

@@ -26,9 +26,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final MemberRepository memberRepository;
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String memberEmail) throws UsernameNotFoundException {
-        return memberRepository.findByMemberEmail(memberEmail)
-                .map(this::createUserDetails).orElseThrow(() -> new UsernameNotFoundException(memberEmail + " 을 DB 찾을 수 없습니다"));
+    public UserDetails loadUserByUsername(String memberId) throws UsernameNotFoundException {
+        log.info("UserDetails : " + memberId);
+        return memberRepository.findById(Long.valueOf(memberId))
+                .map(this::createUserDetails).orElseThrow(() -> new UsernameNotFoundException(memberId + " 을 DB 찾을 수 없습니다"));
     }
     private UserDetails createUserDetails(MemberEntity member) {
         log.info("CustomUserDetailsService");

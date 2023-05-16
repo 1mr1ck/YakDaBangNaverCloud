@@ -11,19 +11,9 @@ import com.jxjtech.yakmanager.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -32,6 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class DrugService {
+    private final DrugRecordRepository drugRecordRepository;
     private final DrugPackageRepository drugPackageRepository;
 
     private final Drug_info1Repository drug_info1Repository;
@@ -87,7 +78,7 @@ public class DrugService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
 
 
-        return new QRCodeResponseDTO(entity);
+        return new QRCodeResponseDTO(entity, dto);
     }
 
     @Transactional
@@ -167,6 +158,12 @@ public class DrugService {
             }
         }
 
+        for(Drug_info1Entity entity : drug_info1Entities) {
+            if(entity.getProduct_name().contains("(")) {
+                entity.setProduct_name(entity.getProduct_name().split("\\(")[0]);
+            }
+        }
+
         return true;
     }
 
@@ -201,5 +198,12 @@ public class DrugService {
         }
         drug_info1Repository.saveAll(drug_info1Entities);
         log.info("count : " + count);
+    }
+
+    @Transactional
+    public void dbUpdate8() {
+        List<DrugRecordEntity> drugRecordEntities = drugRecordRepository.findAll();
+
+        DrugRecordEntity.changePackage(drugRecordEntities);
     }
 }

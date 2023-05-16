@@ -121,6 +121,9 @@ public class InventoryService {
 
         // Send the message
         Transport.send(message);
+
+        File delFile = new File(pharmacyName + ".xlsx");
+        delFile.delete();
     }
 
     private Long getMemberId() {
@@ -213,7 +216,7 @@ public class InventoryService {
         Integer productCode = drugPackageInfoRequestDTO.getProductCode();
 
         DrugPriceEntity drugPriceEntity;
-        if(productCode != null) {
+        if (productCode != null) {
             drugPriceEntity = drugPriceRepository.findByProductCode(productCode)
                     .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
         } else {
@@ -223,20 +226,20 @@ public class InventoryService {
 
         String drugUnit = drugPriceEntity.getDrugUnit();
         // 1. drugCode is not null, productCode is not null
-        if(drugCode != null && productCode != null) {
+        if (drugCode != null && productCode != null) {
             List<DrugPackageEntity> drugPackageEntities = drugPackageRepository.findAllByDrugCode(drugCode);
             // 1-1. drugUnit equals 캡슐 || 정
-            if(drugUnit.equals("캡슐") || drugUnit.equals("정")) {
+            if (drugUnit.equals("캡슐") || drugUnit.equals("정")) {
                 log.info("둘다 not null 캡슐 or 정");
                 result = DrugPackageInfoResponseDTO.ofDrugCodeAndProductCodeNotNull(drugPackageEntities, drugPriceEntity);
             } else {
                 // 1-2. 캡슐이나 정이 아닐경우
                 result = DrugPackageInfoResponseDTO.ofNotCapsuleAndNotPill(drugPriceEntity);
             }
-        } else if(productCode != null) {
+        } else if (productCode != null) {
             // 2. drugCode is null, productCode is not null
             result = DrugPackageInfoResponseDTO.ofOnlyProductCode(drugPriceEntity);
-        } else if(drugCode != null) {
+        } else if (drugCode != null) {
             // 3. drugCode is not null, productCode is null
             List<DrugPackageEntity> drugPackageEntities = drugPackageRepository.findAllByDrugCode(drugCode);
             result = DrugPackageInfoResponseDTO.ofOnlyDrugCode(drugPackageEntities, drugPriceEntity);
@@ -249,7 +252,8 @@ public class InventoryService {
     /**
      * 재고관리 약검색
      */
-    public List<DrugSearchDTO> drugSearCh(String drugName) {
+    public List<DrugSearchDTO> drugSearCh(DrugSearchByKeyWordDTO dto) {
+        String drugName = dto.getKeyword();
         if (drugName.length() < 2) {
             return null;
         }
@@ -380,6 +384,7 @@ public class InventoryService {
         return false;
     }
 
+
     /**
      * 초대코드 생성
      */
@@ -395,7 +400,7 @@ public class InventoryService {
             String rStr = Integer.toString(rNum.nextInt(10));
             invitationCode.append(rStr);
 
-            if(i == 3) {
+            if (i == 3) {
                 List<String> codeList = invitationRepository.findAllGetCode();
 
                 for (String s : codeList) {
@@ -598,7 +603,7 @@ public class InventoryService {
             DrugPriceEntity priceEntity = priceEntities.get(0);
 //            log.info(priceEntity.getDrugUnit() + " " + dto.getDrugPrice() + " " + priceEntity.getDrugPrice());
 
-            if(priceEntity == null || priceEntity.getDrugPrice() == null) {
+            if (priceEntity == null || priceEntity.getDrugPrice() == null) {
                 continue;
             }
             int beforePrice = dto.getDrugPrice();
@@ -682,7 +687,7 @@ public class InventoryService {
 
         List<NarcoticDrugRecordEntity> drugRecordEntities = narcoticDrugRecordRepository.findAllByTitleId(titleId);
         NarcoticTitleEntity title = narcoticTitleRepository.findById(titleId).orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
-        if(!title.getMemberId().equals(getMemberId())) {
+        if (!title.getMemberId().equals(getMemberId())) {
             log.info(title.getMemberId() + "/" + getMemberId());
             throw new AppException(ErrorCode.NOT_ADMIN);
         }
@@ -706,7 +711,7 @@ public class InventoryService {
             String rStr = Integer.toString(rNum.nextInt(10));
             invitationCode.append(rStr);
 
-            if(i == 3) {
+            if (i == 3) {
                 List<String> codeList = narcoticOTPRepository.findAllGetCode();
 
                 for (String s : codeList) {
@@ -735,7 +740,7 @@ public class InventoryService {
         Long memberId = getMemberId();
 
         List<NarcoticTitleEntity> narcoticTitleEntities = narcoticTitleRepository.findAllByMemberId(memberId);
-        if(narcoticTitleEntities.size() > 0) {
+        if (narcoticTitleEntities.size() > 0) {
             return narcoticTitleEntities;
         }
 
@@ -749,7 +754,7 @@ public class InventoryService {
     public boolean narcoticInspection(Long drugRecordId, NarcoticInspectionDTO dto) {
         Optional<NarcoticDrugRecordEntity> narcoticDrugRecordEntity = narcoticDrugRecordRepository.findById(drugRecordId);
 
-        if(narcoticDrugRecordEntity.isEmpty()) {
+        if (narcoticDrugRecordEntity.isEmpty()) {
             return false;
         }
 
@@ -762,11 +767,14 @@ public class InventoryService {
         return true;
     }
 
+    /**
+     * 마약류 의약품 타이틀 DELETE
+     */
     @Transactional
     public boolean deleteNarcoticTitle(Long titleId) {
         Optional<NarcoticTitleEntity> narcoticTitleEntity = narcoticTitleRepository.findById(titleId);
 
-        if(narcoticTitleEntity.isEmpty()) {
+        if (narcoticTitleEntity.isEmpty()) {
             return false;
         }
 
@@ -775,15 +783,18 @@ public class InventoryService {
         return true;
     }
 
+    /**
+     * 마약류 의약품 체크박스 변경
+     */
     @Transactional
     public boolean checkChange(Long drugRecordId) {
         NarcoticDrugRecordEntity narcoticDrugRecordEntity = narcoticDrugRecordRepository.findById(drugRecordId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
 
-        if(narcoticDrugRecordEntity.getCheck() == 0) {
+        if (narcoticDrugRecordEntity.getCheck() == 0) {
             narcoticDrugRecordEntity.setCheck(1);
             return true;
-        } else if(narcoticDrugRecordEntity.getCheck() == 1) {
+        } else if (narcoticDrugRecordEntity.getCheck() == 1) {
             narcoticDrugRecordEntity.setCheck(0);
             return true;
         } else {

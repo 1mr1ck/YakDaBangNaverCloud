@@ -18,6 +18,7 @@ public class ImgUrlDTO {
 
     private Long img_url_id;
     private String img_url;
+    private String password;
 
     public static List<ImgUrlDTO> of(List<ImgUrlEntity> imgUrlEntityList) {
         List<ImgUrlDTO> result = new ArrayList<>();
@@ -34,8 +35,8 @@ public class ImgUrlDTO {
             }
             Collections.reverse(result.subList(0, 5));
 
-            for(int i=0; i<result.size(); i++) {
-                log.info(result.get(i).getImg_url_id().toString());
+            for (ImgUrlDTO imgUrlDTO : result) {
+                log.info(imgUrlDTO.getImg_url_id().toString());
             }
         }
 

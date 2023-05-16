@@ -23,7 +23,6 @@ public class CustomServletWrappingFilter extends OncePerRequestFilter {
         ContentCachingResponseWrapper wrappingResponse = new ContentCachingResponseWrapper(response);
 
         chain.doFilter(wrappingRequest, wrappingResponse);
-
         wrappingResponse.copyBodyToResponse();
     }
 }

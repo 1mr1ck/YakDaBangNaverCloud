@@ -1,10 +1,10 @@
 package com.jxjtech.yakmanager.jwt;
 
-import com.jxjtech.yakmanager.exception.AppException;
-import com.jxjtech.yakmanager.exception.ErrorCode;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -26,12 +26,12 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     private static final String[] PERMIT_ALL = {
-            "/api/auth/check/token", "/api/auth/login", "/api/auth/register/", "/swagger-ui", "/v3", "/index", "/img", "/favicon", "/api/board/notice",
-            "/api/auth/token", "/policy", "/api/DBUpdate", "/csvUpload", "/upload", "/api/inventory/drugs/package", "/api/drugs/QRCode"
+            "/api/auth", "/api/drugs/QRCode", "/api/inventory/drugs/package", "/swagger-ui", "/v3", "/index", "/favicon", "/api/board/notice",
+            "/policy", "/api/DBUpdate", "/csvUpload", "/upload", "/img"
     };
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain) throws ServletException, IOException {
         boolean pathStart = false;
         try {
             String path = request.getServletPath();
@@ -41,7 +41,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     break;
                 }
             }
-            log.info(path + "/" + pathStart);
+            log.info("path : " + path + ", pathStart : " + pathStart);
             if (pathStart) {
                 filterChain.doFilter(request, response);
             } else {
@@ -53,12 +53,13 @@ public class JwtFilter extends OncePerRequestFilter {
                     filterChain.doFilter(request, response);
                 } else {
                     SecurityContextHolder.clearContext();
-                    jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.INVALID_JWT_TOKEN)); // 403
+                    jwtAccessDeniedHandler.handle(request, response, new AccessDeniedException("token error!")); // 403
                 }
             }
         } catch (ExpiredJwtException e) {
             SecurityContextHolder.clearContext();
-            jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.EXPIRED_JWT_TOKEN)); // 401
+            jwtAccessDeniedHandler.handleExpired(request, response, new AccessDeniedException("token expired"));
+//            jwtAccessDeniedHandler.handle(request, response, new AppException(ErrorCode.EXPIRED_JWT_TOKEN)); // 401
         }
     }
 

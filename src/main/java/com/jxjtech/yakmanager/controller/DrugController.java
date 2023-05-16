@@ -69,4 +69,10 @@ public class DrugController {
 //    public void dbUpdate7() {
 //        drugService.dbUpdate7();
 //    }
+
+//    @PostMapping("/DBUpdate8")
+//    @Operation(summary = "재고관리 약기록 패키지 \" 바꾸기")
+//    public void dbUpdate8() {
+//        drugService.dbUpdate8();
+//    }
 }

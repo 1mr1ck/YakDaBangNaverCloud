@@ -8,8 +8,8 @@
     <timestamp key="timestamp" datePattern="yyyyMMdd"/>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>D:/log/logback/YakManagerLog_${timestamp}.log</file> <!-- 로그 파일 저장 경로 -->
 <!--        <file>/home/log/logback/YakManagerLog_${timestamp}.log</file> &lt;!&ndash; 로그 파일 저장 경로 &ndash;&gt;-->
-        <file>D:/log/YakManagerLog_${timestamp}.log</file> <!-- 로그 파일 저장 경로 -->
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss} %msg%n</pattern>
         </encoder>

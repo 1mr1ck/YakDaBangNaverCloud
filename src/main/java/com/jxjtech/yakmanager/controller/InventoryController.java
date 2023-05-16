@@ -6,11 +6,14 @@ import com.jxjtech.yakmanager.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.security.GeneralSecurityException;
 
 @Tag(name = "Inventory API")
 @RestController
@@ -20,11 +23,11 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
 
-    @PostMapping("/drugRecord/DBUpdate")
-    @Operation(summary = "서버이전 약기록 디비 수정")
-    public ResponseEntity<?> drugRecordDBUpdate() throws JsonProcessingException {
-        return ResponseEntity.ok(inventoryService.DBUpdate());
-    }
+//    @PostMapping("/drugRecord/DBUpdate")
+//    @Operation(summary = "서버이전 약기록 디비 수정")
+//    public ResponseEntity<?> drugRecordDBUpdate() throws JsonProcessingException {
+//        return ResponseEntity.ok(inventoryService.DBUpdate());
+//    }
 
     @GetMapping("/drugs/{drugId}")
     @Operation(summary = "약기록 상세정보 조회")
@@ -50,10 +53,10 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getPackageInfo(drugPackageInfoRequestDTO));
     }
 
-    @GetMapping("/drugs/search/{keyword}")
+    @PostMapping("/drugs/search")
     @Operation(summary = "재고관리 약 검색")
-    public ResponseEntity<?> drugSearchByDrugName(@PathVariable(name = "keyword") String drugName) {
-        return ResponseEntity.ok(inventoryService.drugSearCh(drugName));
+    public ResponseEntity<?> drugSearchByDrugName(@RequestBody DrugSearchByKeyWordDTO dto) {
+        return ResponseEntity.ok(inventoryService.drugSearCh(dto));
     }
 
     @GetMapping("/pharmacy")
@@ -82,7 +85,7 @@ public class InventoryController {
 
     @PostMapping("/pharmacy/{pharmacyId}/excel")
     @Operation(summary = "약국 데이터 엑셀")
-    public ResponseEntity<?> exportPharmacyExcel(@PathVariable Long pharmacyId, @RequestParam String email) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<?> exportPharmacyExcel(@PathVariable Long pharmacyId, @RequestParam String email) throws MessagingException, IOException {
         return ResponseEntity.ok(inventoryService.exportPharmacy(pharmacyId, email));
     }
 

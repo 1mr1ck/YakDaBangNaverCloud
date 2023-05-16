@@ -1,9 +1,5 @@
 package com.jxjtech.yakmanager.logging;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jxjtech.yakmanager.exception.AppException;
-import com.jxjtech.yakmanager.exception.ErrorCode;
 import com.jxjtech.yakmanager.jwt.JwtAccessDeniedHandler;
 import com.jxjtech.yakmanager.jwt.TokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +13,9 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,7 +26,6 @@ public class LoggingInterceptor implements HandlerInterceptor {
     private final TokenProvider tokenProvider;
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String BEARER_PREFIX = "Bearer ";
-    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
 
     @Override
@@ -58,44 +56,29 @@ public class LoggingInterceptor implements HandlerInterceptor {
         String jwt = resolveToken(request);
         String memberId = "";
 
-        String jwtFilterBody = jwtAccessDeniedHandler.getResponseBody();
-
-//        if (!tokenProvider.validateToken(jwt)) {
-//            jwt = null;
-//        }
-
-        try {
-            if(tokenProvider.validateToken(jwt)) {
-                memberId = tokenProvider.accessParseClaims(jwt).getSubject();
-            }
-        } catch (Exception e) {
+        if (!tokenProvider.validateTokenLogInterceptor(jwt)) {
             jwt = null;
         }
-        String logStr = "{path: " + request.getServletPath() + ", requestType: " + request.getMethod() + ", requestTime: " + processedTime + "ms, Client IP: " + request.getRemoteAddr() + ", status: " + response.getStatus();
-        if (jwt != null) {
+
+        String logStr = "{Time: " + ZonedDateTime.now(ZoneId.of("Asia/Seoul")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + ", path: " + request.getServletPath() + ", requestType: " + request.getMethod() + ", requestTime: " + processedTime + "ms, Client IP: " + request.getRemoteAddr() + ", status: " + response.getStatus();
+        if (jwt != null && tokenProvider.validateToken(jwt)) {
             memberId = tokenProvider.accessParseClaims(jwt).getSubject();
             logStr += ", memberId: " + memberId;
         }
-
-        if (!request.getServletPath().equals("/error") || !request.getServletPath().startsWith("/v3/api-docs")) {
-            String responseBody = getResponseBody(getResponseWrapper(response));
-            if (jwtFilterBody != null) {
-                logStr += ", ResponseBody: " + jwtFilterBody + "}";
-            } else if(response.getStatus() != 200){
-                logStr += ", ResponseBody: " + responseBody + "}";
-            } else {
-                logStr += "}";
-            }
-            logger.info(logStr);
-        } else {
-            logStr += "}";
-            logger.info(logStr);
+        String responseBody = getResponseBody(getResponseWrapper(response));
+        if(responseBody.startsWith("<!DOCTYPE html>")) {
+            responseBody = null;
+        }
+        if(!request.getServletPath().contains("/v3/api-docs") && !request.getServletPath().contains("/swagger-ui")) {
+            logStr += ", ResponseBody: " + responseBody + "}";
         }
 
+        logger.info(logStr);
     }
 
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
+        log.info("로그 : " + bearerToken);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(7);
         }

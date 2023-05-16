@@ -13,9 +13,11 @@ public class QRCodeResponseDTO {
 
     Integer drugCode;
     String drugName;
+    Long memberId;
 
-    public QRCodeResponseDTO(DrugPackageEntity entity) {
+    public QRCodeResponseDTO(DrugPackageEntity entity, QRCodeURLDTO dto) {
         this.drugCode = entity.getDrugCode();
         this.drugName = entity.getDrugName();
+        this.memberId = dto.getMemberId();
     }
 }

@@ -3,12 +3,14 @@ package com.jxjtech.yakmanager.service;
 import com.jxjtech.yakmanager.dto.*;
 import com.jxjtech.yakmanager.entity.MemberEntity;
 import com.jxjtech.yakmanager.entity.PolicyEntity;
+import com.jxjtech.yakmanager.entity.RecentLoginEntity;
 import com.jxjtech.yakmanager.entity.RefreshTokenEntity;
 import com.jxjtech.yakmanager.exception.AppException;
 import com.jxjtech.yakmanager.exception.ErrorCode;
 import com.jxjtech.yakmanager.jwt.TokenProvider;
 import com.jxjtech.yakmanager.repository.MemberRepository;
 import com.jxjtech.yakmanager.repository.PolicyRepository;
+import com.jxjtech.yakmanager.repository.RecentLoginRepository;
 import com.jxjtech.yakmanager.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -32,6 +35,7 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
     private final PolicyRepository policyRepository;
+    private final RecentLoginRepository recentLoginRepository;
 
     /**
      * Access Token이 필요한 API에서
@@ -60,9 +64,10 @@ public class AuthService {
      * 닉네임 중복체크
      * 중복 : true / 중복x : false
      */
-    public boolean isDuplicateNickName(IsDuplicateNickNameDTO isDuplicateNickNameDTO) {
+    public boolean isDuplicateNickName(IsDuplicateNickNameDTO dto) {
+        String nickName = dto.getMemberNickName();
         // 존재하면 true // 존재하지 않으면 false
-        return memberRepository.existsByMemberNickName(isDuplicateNickNameDTO.getMemberNickName());
+        return memberRepository.existsByMemberNickName(nickName);
     }
 
     /**
@@ -71,22 +76,22 @@ public class AuthService {
      */
     public boolean isDuplicateEmail(IsDuplicateEmailDTO isDuplicateEmailDTO) {
         // 존재하면 true // 존재하지 않으면 false
-        return memberRepository.existsByMemberEmail(isDuplicateEmailDTO.getMemberEmail());
+        return memberRepository.existsByMemberEmailAndSnsType(isDuplicateEmailDTO.getMemberEmail(), isDuplicateEmailDTO.getSnsType());
     }
 
     /**
      * 로그인
      */
     @Transactional
-    public LoginResponseDTO login(String snsType, LoginRequestDTO loginRequestDTO) {
-        log.info("login");
+    public LoginResponseDTO login(String snsType, LoginRequestDTO loginRequestDTO, String osType, String phoneValue, String buildVersion) {
+        log.info(loginRequestDTO.getMemberEmail());
         String memberEmail = loginRequestDTO.getMemberEmail();
 
-        if (!memberRepository.existsByMemberEmail(memberEmail)) {
+        if (!memberRepository.existsByMemberEmailAndSnsType(memberEmail, snsType)) {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
 
-        MemberEntity member = memberRepository.findByMemberEmail(memberEmail)
+        MemberEntity member = memberRepository.findByMemberEmailAndSnsType(memberEmail, snsType)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_EXIST_DATA));
         if (!member.getSnsType().equals(snsType)) {
             throw new AppException(ErrorCode.NOT_EQUAL_SNS_TYPE);
@@ -96,7 +101,7 @@ public class AuthService {
         Authentication authentication = managerBuilder.getObject().authenticate(authenticationToken);
 
         if (authentication != null) {
-            TokenDTO tokenDTO = tokenProvider.generateTokenDto(authentication, member.getMemberId());
+            TokenDTO tokenDTO = tokenProvider.generateTokenDto(authentication, member);
             Map<String, String> token = new LinkedHashMap<>();
             token.put("Authorization", tokenDTO.getAuthorization());
             token.put("Authorization_Exp", String.valueOf(tokenDTO.getAuthorization_Exp()));
@@ -117,6 +122,13 @@ public class AuthService {
                 refreshTokenRepository.save(refreshTokenEntity);
             }
 
+            if(recentLoginRepository.findByPhoneValue(phoneValue).isPresent()) {
+                RecentLoginEntity recentLoginEntity = recentLoginRepository.findByPhoneValue(phoneValue).get();
+                recentLoginEntity.update(recentLoginEntity, buildVersion, snsType);
+            } else {
+                recentLoginRepository.save(new RecentLoginEntity(phoneValue, osType, snsType, buildVersion));
+            }
+
             return result;
         }
         return new LoginResponseDTO();
@@ -130,7 +142,7 @@ public class AuthService {
         AuthCheckResponseDTO result = new AuthCheckResponseDTO();
         if (tokenProvider.certifyRefreshToken(refreshToken)) {
             Long memberId = Long.valueOf(tokenProvider.refreshParseClaims(refreshToken).getSubject());
-            if(policyRepository.existsByMemberId(memberId)) {
+            if (policyRepository.existsByMemberId(memberId)) {
                 result.setResult(true);
                 result.setMsg("POLICY_IS_EXIST");
             }
@@ -147,6 +159,7 @@ public class AuthService {
      */
     public AuthCheckResponseDTO policyRegister(PolicyRegisterDTO policyRegisterDTO, String refreshToken) {
         AuthCheckResponseDTO result = new AuthCheckResponseDTO();
+        refreshToken = cutBearer(refreshToken);
         if (tokenProvider.certifyRefreshToken(refreshToken)) {
             Long memberId = Long.valueOf(tokenProvider.refreshParseClaims(refreshToken).getSubject());
             PolicyEntity policyEntity = PolicyRegisterDTO.toPolicy(policyRegisterDTO, memberId);
@@ -172,5 +185,11 @@ public class AuthService {
             return token.substring(7);
         }
         return null;
+    }
+
+    public RecentLoginResponseDTO recentLogin(String phoneValue) {
+        boolean check = false;
+        Optional<RecentLoginEntity> entity = recentLoginRepository.findByPhoneValue(phoneValue);
+        return entity.map(RecentLoginResponseDTO::new).orElseGet(() -> new RecentLoginResponseDTO(check));
     }
 }

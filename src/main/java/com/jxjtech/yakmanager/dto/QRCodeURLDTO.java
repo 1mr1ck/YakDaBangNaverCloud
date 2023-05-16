@@ -6,4 +6,5 @@ import lombok.Data;
 public class QRCodeURLDTO {
 
     Long standardCode;
+    Long memberId;
 }
