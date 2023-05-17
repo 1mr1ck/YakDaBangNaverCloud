@@ -43,7 +43,6 @@ public class LoggingInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
 
-        // View를 리턴하기 직전에 실행됨
         // 현재 시간을 구한다
         long currentTime = System.currentTimeMillis();
 
